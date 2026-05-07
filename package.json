@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "description": "Unofficial local Codex usage monitor for Elgato Stream Deck.",
-  "homepage": "https://github.com/PokeyBrant/codex-usage-streamdeck",
+  "homepage": "https://github.com/statuscheckgg/codex-usage-streamdeck",
   "repository": {
     "type": "git",
-    "url": "https://github.com/PokeyBrant/codex-usage-streamdeck.git"
+    "url": "https://github.com/statuscheckgg/codex-usage-streamdeck.git"
   },
   "bugs": {
-    "url": "https://github.com/PokeyBrant/codex-usage-streamdeck/issues"
+    "url": "https://github.com/statuscheckgg/codex-usage-streamdeck/issues"
   },
   "scripts": {
     "check": "node --check com.statuscheck.codex-usage.sdPlugin/bin/plugin.js",

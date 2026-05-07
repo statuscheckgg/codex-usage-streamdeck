@@ -14,7 +14,7 @@
       "Tooltip": "Show Codex 5-hour and weekly usage limits.",
       "UUID": "com.statuscheck.codex-usage.usage",
       "PropertyInspectorPath": "ui/usage.html",
-      "SupportURL": "https://github.com/PokeyBrant/codex-usage-streamdeck/issues",
+      "SupportURL": "https://github.com/statuscheckgg/codex-usage-streamdeck/issues",
       "UserTitleEnabled": false,
       "SupportedInMultiActions": false
     }
@@ -43,8 +43,8 @@
   "Software": {
     "MinimumVersion": "7.1"
   },
-  "SupportURL": "https://github.com/PokeyBrant/codex-usage-streamdeck/issues",
-  "URL": "https://github.com/PokeyBrant/codex-usage-streamdeck",
+  "SupportURL": "https://github.com/statuscheckgg/codex-usage-streamdeck/issues",
+  "URL": "https://github.com/statuscheckgg/codex-usage-streamdeck",
   "UUID": "com.statuscheck.codex-usage",
   "Version": "0.1.0.0"
 }

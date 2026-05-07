@@ -85,4 +85,4 @@ The Marketplace listing and property inspector must disclose that the plugin rea
 
 Use GitHub issues for support:
 
-https://github.com/PokeyBrant/codex-usage-streamdeck/issues
+https://github.com/statuscheckgg/codex-usage-streamdeck/issues

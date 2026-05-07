@@ -34,10 +34,10 @@ Initial release with Codex 5-hour and weekly usage display, configurable visual 
 
 ## Links
 
-- Product/support: `https://github.com/PokeyBrant/codex-usage-streamdeck`
-- Issues: `https://github.com/PokeyBrant/codex-usage-streamdeck/issues`
-- Privacy: `https://github.com/PokeyBrant/codex-usage-streamdeck/blob/main/PRIVACY.md`
-- Release: `https://github.com/PokeyBrant/codex-usage-streamdeck/releases/tag/v0.1.0`
+- Product/support: `https://github.com/statuscheckgg/codex-usage-streamdeck`
+- Issues: `https://github.com/statuscheckgg/codex-usage-streamdeck/issues`
+- Privacy: `https://github.com/statuscheckgg/codex-usage-streamdeck/blob/main/PRIVACY.md`
+- Release: `https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.0`
 
 ## Review Notes
 

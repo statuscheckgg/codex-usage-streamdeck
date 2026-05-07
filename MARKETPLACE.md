@@ -8,7 +8,7 @@ Built plugin installer:
 
 Public release:
 
-`https://github.com/PokeyBrant/codex-usage-streamdeck/releases/tag/v0.1.0`
+`https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.0`
 
 ## Current Status
 
@@ -55,9 +55,9 @@ Generated local assets:
 
 Public links:
 
-- Support: `https://github.com/PokeyBrant/codex-usage-streamdeck/issues`
-- Privacy: `https://github.com/PokeyBrant/codex-usage-streamdeck/blob/main/PRIVACY.md`
-- Release notes: `https://github.com/PokeyBrant/codex-usage-streamdeck/blob/main/RELEASE_NOTES.md`
+- Support: `https://github.com/statuscheckgg/codex-usage-streamdeck/issues`
+- Privacy: `https://github.com/statuscheckgg/codex-usage-streamdeck/blob/main/PRIVACY.md`
+- Release notes: `https://github.com/statuscheckgg/codex-usage-streamdeck/blob/main/RELEASE_NOTES.md`
 
 ## Suggested Gallery Shots
 
