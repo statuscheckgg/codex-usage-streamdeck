@@ -11,6 +11,10 @@
   "bugs": {
     "url": "https://github.com/statuscheckgg/codex-usage-streamdeck/issues"
   },
+  "funding": {
+    "type": "individual",
+    "url": "https://buymeacoffee.com/statuscheck"
+  },
   "scripts": {
     "check": "node --check com.statuscheck.codex-usage.sdPlugin/bin/plugin.js",
     "test:harness": "node scripts/test-plugin-harness.mjs",

@@ -86,3 +86,7 @@ The Marketplace listing and property inspector must disclose that the plugin rea
 Use GitHub issues for support:
 
 https://github.com/statuscheckgg/codex-usage-streamdeck/issues
+
+This plugin is free. If it saves you time, optional support is welcome:
+
+https://buymeacoffee.com/statuscheck

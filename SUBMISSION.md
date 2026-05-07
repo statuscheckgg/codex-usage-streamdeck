@@ -38,9 +38,11 @@ Initial release with Codex 5-hour and weekly usage display, configurable visual 
 - Issues: `https://github.com/statuscheckgg/codex-usage-streamdeck/issues`
 - Privacy: `https://github.com/statuscheckgg/codex-usage-streamdeck/blob/main/PRIVACY.md`
 - Release: `https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.0`
+- Optional support: `https://buymeacoffee.com/statuscheck`
 
 ## Review Notes
 
 - The plugin uses an internal Codex/ChatGPT usage endpoint, not a documented public OpenAI API.
 - The Property Inspector and listing disclose that the plugin reads local Codex auth.
 - The plugin does not refresh tokens directly; users refresh login through Codex.
+- The plugin is free; the Buy Me a Coffee link is optional support only.

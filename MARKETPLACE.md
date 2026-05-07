@@ -37,6 +37,10 @@ Disclosure:
 
 `This plugin is unofficial and is not affiliated with OpenAI. It reads the local Codex auth file and sends authenticated usage requests only to OpenAI/ChatGPT. Tokens are not displayed, logged, or sent to the plugin author.`
 
+Optional support note:
+
+`This plugin is free. If it saves you time, optional support is welcome.`
+
 ## Required Marketplace Assets
 
 - Thumbnail: `1920x960 PNG`
@@ -58,6 +62,7 @@ Public links:
 - Support: `https://github.com/statuscheckgg/codex-usage-streamdeck/issues`
 - Privacy: `https://github.com/statuscheckgg/codex-usage-streamdeck/blob/main/PRIVACY.md`
 - Release notes: `https://github.com/statuscheckgg/codex-usage-streamdeck/blob/main/RELEASE_NOTES.md`
+- Optional support: `https://buymeacoffee.com/statuscheck`
 
 ## Suggested Gallery Shots
 

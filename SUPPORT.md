@@ -23,3 +23,9 @@ If the key shows `API CHANGED`, the internal Codex usage endpoint or response sh
 - Action UUID: `com.statuscheck.codex-usage.usage`
 - Current version: `0.1.0.0`
 - Local Stream Deck plugin folder on Windows: `%APPDATA%\Elgato\StreamDeck\Plugins\com.statuscheck.codex-usage.sdPlugin`
+
+## Optional Support
+
+Codex Usage Monitor is free. If it saves you time, optional support is welcome:
+
+https://buymeacoffee.com/statuscheck
