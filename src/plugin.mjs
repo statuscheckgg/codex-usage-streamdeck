@@ -459,21 +459,23 @@ function end() {
 
 function renderDualBars(snapshot, settings) {
   const p = palette(snapshot.level, snapshot.mood?.pulse);
+  const primaryPalette = palette(getLevel(snapshot.primary.remainingPercent, settings));
+  const weeklyPalette = palette(getLevel(snapshot.weekly.remainingPercent, settings));
   const primary = valueFor(snapshot.primary, settings);
   const weekly = valueFor(snapshot.weekly, settings);
   const primaryWidth = Math.max(4, primary * 0.83);
   const weeklyWidth = Math.max(4, weekly * 0.83);
   return `${base(p)}
   <text x="23" y="45" fill="${p.text}" font-size="26" font-family="Arial, sans-serif" font-weight="800">${primary}%</text>
-  <text x="110" y="33" fill="${p.accent}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">5H</text>
+  <text x="110" y="33" fill="${primaryPalette.accent}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">5H</text>
   <text x="110" y="52" fill="${p.text}" font-size="13" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">${settings.showReset ? esc(snapshot.primary.resetText) : " "}</text>
   <line x1="24" y1="65" x2="107" y2="65" stroke="${p.track}" stroke-width="6" stroke-linecap="round"/>
-  <line x1="24" y1="65" x2="${24 + primaryWidth}" y2="65" stroke="${p.accent}" stroke-width="6" stroke-linecap="round"/>
+  <line x1="24" y1="65" x2="${24 + primaryWidth}" y2="65" stroke="${primaryPalette.accent}" stroke-width="6" stroke-linecap="round"/>
   <text x="23" y="103" fill="${p.text}" font-size="26" font-family="Arial, sans-serif" font-weight="800">${weekly}%</text>
-  <text x="110" y="91" fill="${p.accent}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">WK</text>
+  <text x="110" y="91" fill="${weeklyPalette.accent}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">WK</text>
   <text x="110" y="110" fill="${p.text}" font-size="13" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">${settings.showReset ? esc(snapshot.weekly.resetText) : " "}</text>
   <line x1="24" y1="123" x2="107" y2="123" stroke="${p.track}" stroke-width="6" stroke-linecap="round"/>
-  <line x1="24" y1="123" x2="${24 + weeklyWidth}" y2="123" stroke="${p.accent}" stroke-width="6" stroke-linecap="round"/>
+  <line x1="24" y1="123" x2="${24 + weeklyWidth}" y2="123" stroke="${weeklyPalette.accent}" stroke-width="6" stroke-linecap="round"/>
   ${renderMood(snapshot, p, 0)}
   ${settings.showSpark ? sparkLabel(snapshot, p, settings) : ""}
   ${settings.showPlan ? planLabel(snapshot.planType, p) : ""}
@@ -526,16 +528,18 @@ ${end()}`;
 
 function renderSplit(snapshot, settings) {
   const p = palette(snapshot.level, snapshot.mood?.pulse);
+  const primaryPalette = palette(getLevel(snapshot.primary.remainingPercent, settings));
+  const weeklyPalette = palette(getLevel(snapshot.weekly.remainingPercent, settings));
   const p1 = valueFor(snapshot.primary, settings);
   const w1 = valueFor(snapshot.weekly, settings);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
   <rect width="144" height="144" rx="28" fill="${p.bg}"/>
   <rect x="10" y="10" width="124" height="59" rx="21" fill="${p.panel}"/>
   <rect x="10" y="75" width="124" height="59" rx="21" fill="${p.panel}"/>
-  <text x="24" y="34" fill="${p.accent}" font-size="14" font-family="Arial, sans-serif" font-weight="900">5H</text>
+  <text x="24" y="34" fill="${primaryPalette.accent}" font-size="14" font-family="Arial, sans-serif" font-weight="900">5H</text>
   <text x="24" y="59" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="900">${p1}%</text>
   <text x="105" y="55" fill="${p.muted}" font-size="13" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(snapshot.primary.resetText) : ""}</text>
-  <text x="24" y="99" fill="${p.accent}" font-size="14" font-family="Arial, sans-serif" font-weight="900">WK</text>
+  <text x="24" y="99" fill="${weeklyPalette.accent}" font-size="14" font-family="Arial, sans-serif" font-weight="900">WK</text>
   <text x="24" y="124" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="900">${w1}%</text>
   <text x="105" y="120" fill="${p.muted}" font-size="13" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(snapshot.weekly.resetText) : ""}</text>
   ${renderMood(snapshot, p, 0)}

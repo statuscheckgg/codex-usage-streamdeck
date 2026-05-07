@@ -45,6 +45,13 @@ const scenarios = [
     expect: "data:image/svg+xml",
   },
   {
+    name: "mixed dual bars split colors",
+    env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "mixed-usage.json") },
+    settings: { displayMode: "dual-bars", yellowThreshold: 50, redThreshold: 20, criticalThreshold: 10 },
+    expectDecoded: "stroke=\"#34e977\"",
+    expectDecodedAll: ["fill=\"#f6d84d\"", "fill=\"#34e977\""],
+  },
+  {
     name: "critical warning tile",
     env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "critical-usage.json") },
     settings: { displayMode: "warning-tile", redThreshold: 20, criticalThreshold: 10 },
@@ -128,6 +135,11 @@ async function runScenario(scenario) {
     }
     if (scenario.expectDecoded && !decoded.includes(scenario.expectDecoded)) {
       throw new Error(`${scenario.name}: expected decoded SVG to include ${scenario.expectDecoded}`);
+    }
+    for (const expected of scenario.expectDecodedAll || []) {
+      if (!decoded.includes(expected)) {
+        throw new Error(`${scenario.name}: expected decoded SVG to include ${expected}`);
+      }
     }
   } finally {
     clearTimeout(timeout);
