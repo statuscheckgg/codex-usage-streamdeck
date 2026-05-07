@@ -6,6 +6,10 @@ Built plugin installer:
 
 `com.statuscheck.codex-usage.streamDeckPlugin`
 
+Public release:
+
+`https://github.com/PokeyBrant/codex-usage-streamdeck/releases/tag/v0.1.0`
+
 ## Current Status
 
 - Stream Deck validation passes.
@@ -49,6 +53,12 @@ Generated local assets:
 - `marketplace-assets\gallery-oh-no-critical.png`
 - `marketplace-assets\gallery-property-inspector.png`
 
+Public links:
+
+- Support: `https://github.com/PokeyBrant/codex-usage-streamdeck/issues`
+- Privacy: `https://github.com/PokeyBrant/codex-usage-streamdeck/blob/main/PRIVACY.md`
+- Release notes: `https://github.com/PokeyBrant/codex-usage-streamdeck/blob/main/RELEASE_NOTES.md`
+
 ## Suggested Gallery Shots
 
 - Dual bars normal green state
@@ -66,3 +76,10 @@ Generated local assets:
 - Reads local Codex auth, so the listing and property inspector must clearly disclose token handling.
 - Needs beta testing on both Windows and macOS before Marketplace submission.
 - Manual Stream Deck key placement and property-inspector interaction still need visual confirmation in the app.
+
+## Submission Status
+
+- GitHub repo published.
+- v0.1.0 release created with the `.streamDeckPlugin` installer attached.
+- Elgato `streamdeck validate` passes after public URL resolution.
+- Remaining step is Maker Console upload and review submission.
