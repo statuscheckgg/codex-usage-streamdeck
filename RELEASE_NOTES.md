@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.1.5.0
+
+- Updates the app/plugin icon to match the live dual-bars Stream Deck key display.
+
 ## 0.1.4.0
 
 - Declares Stream Deck manifest SDK version 3 for Maker Console compatibility.
