@@ -16,10 +16,11 @@
     "url": "https://buymeacoffee.com/statuscheck"
   },
   "scripts": {
-    "check": "node --check com.statuscheck.codex-usage.sdPlugin/bin/plugin.js",
-    "test:harness": "node scripts/test-plugin-harness.mjs",
-    "validate": "streamdeck validate com.statuscheck.codex-usage.sdPlugin",
-    "pack": "streamdeck pack -f com.statuscheck.codex-usage.sdPlugin"
+    "build": "node scripts/build-plugin.mjs",
+    "check": "npm run build && node --check com.statuscheck.codex-usage.sdPlugin/bin/plugin.js",
+    "test:harness": "npm run build && node scripts/test-plugin-harness.mjs",
+    "validate": "npm run build && streamdeck validate com.statuscheck.codex-usage.sdPlugin",
+    "pack": "npm run build && streamdeck pack -f com.statuscheck.codex-usage.sdPlugin"
   },
   "keywords": [
     "streamdeck",
@@ -30,6 +31,10 @@
   "license": "UNLICENSED",
   "devDependencies": {
     "@elgato/cli": "^1.7.4",
+    "esbuild": "^0.28.0",
     "ws": "^8.20.0"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^2.1.0"
   }
 }
