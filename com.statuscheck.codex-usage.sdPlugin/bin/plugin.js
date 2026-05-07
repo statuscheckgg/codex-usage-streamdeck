@@ -17195,7 +17195,7 @@ var plugin_default = streamDeck;
 // src/plugin.mjs
 var ACTION_UUID = "com.statuscheck.codex-usage.usage";
 var USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
-var PLUGIN_VERSION = "0.1.1.0";
+var PLUGIN_VERSION = "0.1.2.0";
 var actions = /* @__PURE__ */ new Map();
 var CodexUsageAction = class extends SingletonAction {
   constructor() {
@@ -17313,7 +17313,8 @@ function defaultSettings() {
     showPlan: false,
     showSpark: false,
     authPath: "",
-    basis: "remaining"
+    basis: "remaining",
+    singleWindow: "auto"
   };
 }
 function normalizeSettings(raw = {}) {
@@ -17333,11 +17334,15 @@ function normalizeSettings(raw = {}) {
     showPlan: toBool(raw.showPlan, defaults.showPlan),
     showSpark: toBool(raw.showSpark, defaults.showSpark),
     authPath: typeof raw.authPath === "string" ? raw.authPath.trim() : defaults.authPath,
-    basis: pick3(raw.basis, defaults.basis)
+    basis: pick3(raw.basis, defaults.basis),
+    singleWindow: pickWindow(raw.singleWindow, defaults.singleWindow)
   };
 }
 function pick3(value, fallback) {
   return typeof value === "string" && value.length > 0 ? value : fallback;
+}
+function pickWindow(value, fallback) {
+  return value === "primary" || value === "weekly" || value === "auto" ? value : fallback;
 }
 function toBool(value, fallback) {
   if (typeof value === "boolean") {
@@ -17621,8 +17626,10 @@ function renderDualBars(snapshot, settings2) {
 ${end()}`;
 }
 function renderRing(snapshot, settings2) {
-  const p = palette(snapshot.level, snapshot.mood?.pulse);
-  const active = snapshot.lowest;
+  const active = selectSingleWindow(snapshot, settings2, "lowest");
+  const level = getLevel(active.remainingPercent, settings2);
+  const mood = getMood(level, settings2);
+  const p = palette(level, mood?.pulse);
   const value = valueFor(active, settings2);
   const arc = ringArc(72, 68, 43, Math.max(0.01, value / 100));
   return `${base(p)}
@@ -17631,28 +17638,32 @@ function renderRing(snapshot, settings2) {
   <text x="72" y="67" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${value}%</text>
   <text x="72" y="84" fill="${p.text}" font-size="12" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${active.label}</text>
   <text x="72" y="111" fill="${p.text}" font-size="13" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">${settings2.showReset ? esc2(active.resetText) : ""}</text>
-  ${renderMood(snapshot, p, 1)}
+  ${renderMood({ ...snapshot, level, mood }, p, 1)}
   ${settings2.showSpark ? sparkLabel(snapshot, p, settings2) : ""}
   ${settings2.showPlan ? planLabel(snapshot.planType, p) : ""}
 ${end()}`;
 }
 function renderWeeklyTile(snapshot, settings2) {
-  const level = getLevel(snapshot.weekly.remainingPercent, settings2);
-  const p = palette(level, snapshot.mood?.pulse);
-  const value = valueFor(snapshot.weekly, settings2);
+  const active = selectSingleWindow(snapshot, settings2, "weekly");
+  const level = getLevel(active.remainingPercent, settings2);
+  const mood = getMood(level, settings2);
+  const p = palette(level, mood?.pulse);
+  const value = valueFor(active, settings2);
   return `${base(p)}
   <rect x="13" y="13" width="118" height="118" rx="22" fill="${p.accent}"/>
-  <text x="72" y="42" fill="#08111a" font-size="18" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">WK</text>
+  <text x="72" y="42" fill="#08111a" font-size="18" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${active.label}</text>
   <text x="72" y="86" fill="#08111a" font-size="42" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${value}%</text>
-  <text x="72" y="111" fill="#08111a" font-size="16" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings2.showReset ? esc2(snapshot.weekly.resetText) : ""}</text>
-  ${renderMood({ ...snapshot, level, mood: snapshot.mood }, { ...p, text: "#08111a", muted: "#08111a" }, 2)}
+  <text x="72" y="111" fill="#08111a" font-size="16" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings2.showReset ? esc2(active.resetText) : ""}</text>
+  ${renderMood({ ...snapshot, level, mood }, { ...p, text: "#08111a", muted: "#08111a" }, 2)}
 ${end()}`;
 }
 function renderWarningTile(snapshot, settings2) {
-  const p = palette(snapshot.level, snapshot.mood?.pulse);
-  const active = snapshot.lowest;
+  const active = selectSingleWindow(snapshot, settings2, "lowest");
+  const level = getLevel(active.remainingPercent, settings2);
+  const mood = getMood(level, settings2);
+  const p = palette(level, mood?.pulse);
   const value = valueFor(active, settings2);
-  const label = snapshot.level === "green" ? active.label : snapshot.mood?.text || active.label;
+  const label = level === "green" ? active.label : mood?.text || active.label;
   return `${base(p)}
   <text x="72" y="39" fill="${p.accent}" font-size="16" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${esc2(label)}</text>
   <text x="72" y="87" fill="${p.text}" font-size="47" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${value}%</text>
@@ -17681,14 +17692,16 @@ function renderSplit(snapshot, settings2) {
 ${end()}`;
 }
 function renderLowest(snapshot, settings2) {
-  const p = palette(snapshot.level, snapshot.mood?.pulse);
-  const active = snapshot.lowest;
+  const active = selectSingleWindow(snapshot, settings2, "lowest");
+  const level = getLevel(active.remainingPercent, settings2);
+  const mood = getMood(level, settings2);
+  const p = palette(level, mood?.pulse);
   const value = valueFor(active, settings2);
   return `${base(p)}
   <text x="72" y="38" fill="${p.accent}" font-size="19" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${active.label}</text>
   <text x="72" y="89" fill="${p.text}" font-size="48" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${value}%</text>
   <text x="72" y="114" fill="${p.text}" font-size="16" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings2.showReset ? esc2(active.resetText) : ""}</text>
-  ${renderMood(snapshot, p, 2)}
+  ${renderMood({ ...snapshot, level, mood }, p, 2)}
   ${settings2.showSpark ? sparkLabel(snapshot, p, settings2) : ""}
 ${end()}`;
 }
@@ -17797,6 +17810,15 @@ function sparkLabel(snapshot, p, settings2) {
   }
   const value = valueFor(snapshot.spark.primary, settings2);
   return `<text x="72" y="133" fill="${p.muted}" font-size="9" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">SP ${value}%</text>`;
+}
+function selectSingleWindow(snapshot, settings2, fallback) {
+  if (settings2.singleWindow === "primary") {
+    return snapshot.primary;
+  }
+  if (settings2.singleWindow === "weekly") {
+    return snapshot.weekly;
+  }
+  return fallback === "weekly" ? snapshot.weekly : snapshot.lowest;
 }
 function valueFor(window, settings2) {
   return settings2.basis === "used" ? window.usedPercent : window.remainingPercent;

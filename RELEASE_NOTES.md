@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.1.2.0
+
+- Adds a Single display selector for one-window modes: Auto, 5-hour, or Weekly.
+- Lets ring gauge, tile, warning tile, and lowest modes target either quota window.
+
 ## 0.1.1.0
 
 - Bundles the official Stream Deck SDK runtime for Marketplace compatibility.

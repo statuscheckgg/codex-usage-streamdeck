@@ -58,6 +58,18 @@ const scenarios = [
     expectDecoded: "8%",
   },
   {
+    name: "ring can show weekly",
+    env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "critical-usage.json") },
+    settings: { displayMode: "ring", singleWindow: "weekly" },
+    expectDecodedAll: ["82%", "WK"],
+  },
+  {
+    name: "tile can show primary",
+    env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "mixed-usage.json") },
+    settings: { displayMode: "weekly-tile", singleWindow: "primary" },
+    expectDecodedAll: ["46%", "5H"],
+  },
+  {
     name: "missing login",
     env: { CODEX_USAGE_MOCK_ERROR: "LOGIN" },
     settings: {},

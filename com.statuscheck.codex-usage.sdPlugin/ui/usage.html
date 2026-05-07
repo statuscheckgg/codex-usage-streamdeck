@@ -114,6 +114,14 @@
     </select>
   </label>
   <label>
+    Single display
+    <select id="singleWindow">
+      <option value="auto">Auto</option>
+      <option value="primary">5-hour</option>
+      <option value="weekly">Weekly</option>
+    </select>
+  </label>
+  <label>
     Refresh seconds
     <input id="refreshSeconds" type="number" min="15" max="3600" step="15">
   </label>
@@ -189,6 +197,7 @@
     const defaults = {
       displayMode: "dual-bars",
       basis: "remaining",
+      singleWindow: "auto",
       refreshSeconds: 300,
       yellowThreshold: 50,
       redThreshold: 20,

@@ -9,7 +9,7 @@ import streamDeck, { SingletonAction } from "@elgato/streamdeck";
 const PLUGIN_UUID = "com.statuscheck.codex-usage";
 const ACTION_UUID = "com.statuscheck.codex-usage.usage";
 const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
-const PLUGIN_VERSION = "0.1.1.0";
+const PLUGIN_VERSION = "0.1.2.0";
 
 const actions = new Map();
 
@@ -143,6 +143,7 @@ function defaultSettings() {
     showSpark: false,
     authPath: "",
     basis: "remaining",
+    singleWindow: "auto",
   };
 }
 
@@ -164,11 +165,16 @@ function normalizeSettings(raw = {}) {
     showSpark: toBool(raw.showSpark, defaults.showSpark),
     authPath: typeof raw.authPath === "string" ? raw.authPath.trim() : defaults.authPath,
     basis: pick(raw.basis, defaults.basis),
+    singleWindow: pickWindow(raw.singleWindow, defaults.singleWindow),
   };
 }
 
 function pick(value, fallback) {
   return typeof value === "string" && value.length > 0 ? value : fallback;
+}
+
+function pickWindow(value, fallback) {
+  return value === "primary" || value === "weekly" || value === "auto" ? value : fallback;
 }
 
 function toBool(value, fallback) {
@@ -483,8 +489,10 @@ ${end()}`;
 }
 
 function renderRing(snapshot, settings) {
-  const p = palette(snapshot.level, snapshot.mood?.pulse);
-  const active = snapshot.lowest;
+  const active = selectSingleWindow(snapshot, settings, "lowest");
+  const level = getLevel(active.remainingPercent, settings);
+  const mood = getMood(level, settings);
+  const p = palette(level, mood?.pulse);
   const value = valueFor(active, settings);
   const arc = ringArc(72, 68, 43, Math.max(0.01, value / 100));
   return `${base(p)}
@@ -493,30 +501,34 @@ function renderRing(snapshot, settings) {
   <text x="72" y="67" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${value}%</text>
   <text x="72" y="84" fill="${p.text}" font-size="12" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${active.label}</text>
   <text x="72" y="111" fill="${p.text}" font-size="13" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">${settings.showReset ? esc(active.resetText) : ""}</text>
-  ${renderMood(snapshot, p, 1)}
+  ${renderMood({ ...snapshot, level, mood }, p, 1)}
   ${settings.showSpark ? sparkLabel(snapshot, p, settings) : ""}
   ${settings.showPlan ? planLabel(snapshot.planType, p) : ""}
 ${end()}`;
 }
 
 function renderWeeklyTile(snapshot, settings) {
-  const level = getLevel(snapshot.weekly.remainingPercent, settings);
-  const p = palette(level, snapshot.mood?.pulse);
-  const value = valueFor(snapshot.weekly, settings);
+  const active = selectSingleWindow(snapshot, settings, "weekly");
+  const level = getLevel(active.remainingPercent, settings);
+  const mood = getMood(level, settings);
+  const p = palette(level, mood?.pulse);
+  const value = valueFor(active, settings);
   return `${base(p)}
   <rect x="13" y="13" width="118" height="118" rx="22" fill="${p.accent}"/>
-  <text x="72" y="42" fill="#08111a" font-size="18" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">WK</text>
+  <text x="72" y="42" fill="#08111a" font-size="18" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${active.label}</text>
   <text x="72" y="86" fill="#08111a" font-size="42" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${value}%</text>
-  <text x="72" y="111" fill="#08111a" font-size="16" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(snapshot.weekly.resetText) : ""}</text>
-  ${renderMood({ ...snapshot, level, mood: snapshot.mood }, { ...p, text: "#08111a", muted: "#08111a" }, 2)}
+  <text x="72" y="111" fill="#08111a" font-size="16" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(active.resetText) : ""}</text>
+  ${renderMood({ ...snapshot, level, mood }, { ...p, text: "#08111a", muted: "#08111a" }, 2)}
 ${end()}`;
 }
 
 function renderWarningTile(snapshot, settings) {
-  const p = palette(snapshot.level, snapshot.mood?.pulse);
-  const active = snapshot.lowest;
+  const active = selectSingleWindow(snapshot, settings, "lowest");
+  const level = getLevel(active.remainingPercent, settings);
+  const mood = getMood(level, settings);
+  const p = palette(level, mood?.pulse);
   const value = valueFor(active, settings);
-  const label = snapshot.level === "green" ? active.label : snapshot.mood?.text || active.label;
+  const label = level === "green" ? active.label : mood?.text || active.label;
   return `${base(p)}
   <text x="72" y="39" fill="${p.accent}" font-size="16" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${esc(label)}</text>
   <text x="72" y="87" fill="${p.text}" font-size="47" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${value}%</text>
@@ -547,14 +559,16 @@ ${end()}`;
 }
 
 function renderLowest(snapshot, settings) {
-  const p = palette(snapshot.level, snapshot.mood?.pulse);
-  const active = snapshot.lowest;
+  const active = selectSingleWindow(snapshot, settings, "lowest");
+  const level = getLevel(active.remainingPercent, settings);
+  const mood = getMood(level, settings);
+  const p = palette(level, mood?.pulse);
   const value = valueFor(active, settings);
   return `${base(p)}
   <text x="72" y="38" fill="${p.accent}" font-size="19" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${active.label}</text>
   <text x="72" y="89" fill="${p.text}" font-size="48" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${value}%</text>
   <text x="72" y="114" fill="${p.text}" font-size="16" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(active.resetText) : ""}</text>
-  ${renderMood(snapshot, p, 2)}
+  ${renderMood({ ...snapshot, level, mood }, p, 2)}
   ${settings.showSpark ? sparkLabel(snapshot, p, settings) : ""}
 ${end()}`;
 }
@@ -669,6 +683,16 @@ function sparkLabel(snapshot, p, settings) {
   }
   const value = valueFor(snapshot.spark.primary, settings);
   return `<text x="72" y="133" fill="${p.muted}" font-size="9" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">SP ${value}%</text>`;
+}
+
+function selectSingleWindow(snapshot, settings, fallback) {
+  if (settings.singleWindow === "primary") {
+    return snapshot.primary;
+  }
+  if (settings.singleWindow === "weekly") {
+    return snapshot.weekly;
+  }
+  return fallback === "weekly" ? snapshot.weekly : snapshot.lowest;
 }
 
 function valueFor(window, settings) {
