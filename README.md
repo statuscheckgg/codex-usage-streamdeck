@@ -33,10 +33,8 @@ Current local package path during development:
 
 - Dual bars
 - Ring gauge
-- Weekly tile
 - Warning tile
 - Split key
-- Lowest remaining
 
 The Property Inspector also includes refresh interval, threshold, reset-label, Spark-limit, and mood-indicator controls.
 

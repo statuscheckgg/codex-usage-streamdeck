@@ -4,14 +4,14 @@
 
 - Name: `Codex Usage Monitor`
 - Type: Stream Deck plugin
-- Version: `0.1.2.0`
+- Version: `0.1.3.0`
 - Price: Free
 - Author: `Status Check`
 - Plugin file: `com.statuscheck.codex-usage.streamDeckPlugin`
 
 ## Description
 
-Codex Usage Monitor is an unofficial local Stream Deck plugin that shows Codex 5-hour and weekly usage windows using your existing Codex login. Choose from bar, ring, weekly tile, warning tile, split, and lowest-remaining visual modes. Configure thresholds, reset countdowns, and optional mood indicators that update more frequently as limits get low.
+Codex Usage Monitor is an unofficial local Stream Deck plugin that shows Codex 5-hour and weekly usage windows using your existing Codex login. Choose from dual-bar, ring gauge, warning tile, and split-key visual modes. Configure thresholds, reset countdowns, single-window targeting, and optional mood indicators that update more frequently as limits get low.
 
 This plugin is unofficial and is not affiliated with OpenAI. It reads the local Codex auth file and sends authenticated usage requests only to OpenAI/ChatGPT. Tokens are not displayed, logged, stored by the plugin, or sent to the plugin author.
 
@@ -37,7 +37,7 @@ Initial release with Codex 5-hour and weekly usage display, configurable visual 
 - Product/support: `https://github.com/statuscheckgg/codex-usage-streamdeck`
 - Issues: `https://github.com/statuscheckgg/codex-usage-streamdeck/issues`
 - Privacy: `https://github.com/statuscheckgg/codex-usage-streamdeck/blob/main/PRIVACY.md`
-- Release: `https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.2`
+- Release: `https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.3`
 - Optional support: `https://buymeacoffee.com/statuscheck`
 
 ## Review Notes

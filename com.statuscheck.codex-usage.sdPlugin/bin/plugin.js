@@ -17195,7 +17195,7 @@ var plugin_default = streamDeck;
 // src/plugin.mjs
 var ACTION_UUID = "com.statuscheck.codex-usage.usage";
 var USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
-var PLUGIN_VERSION = "0.1.2.0";
+var PLUGIN_VERSION = "0.1.3.0";
 var actions = /* @__PURE__ */ new Map();
 var CodexUsageAction = class extends SingletonAction {
   constructor() {
@@ -17319,8 +17319,9 @@ function defaultSettings() {
 }
 function normalizeSettings(raw = {}) {
   const defaults = defaultSettings();
+  const legacyDisplayMode = pick3(raw.displayMode, defaults.displayMode);
   return {
-    displayMode: pick3(raw.displayMode, defaults.displayMode),
+    displayMode: normalizeDisplayMode(legacyDisplayMode),
     refreshSeconds: clampNumber(raw.refreshSeconds, defaults.refreshSeconds, 15, 3600),
     yellowThreshold: clampNumber(raw.yellowThreshold, defaults.yellowThreshold, 1, 99),
     redThreshold: clampNumber(raw.redThreshold, defaults.redThreshold, 1, 99),
@@ -17335,14 +17336,29 @@ function normalizeSettings(raw = {}) {
     showSpark: toBool(raw.showSpark, defaults.showSpark),
     authPath: typeof raw.authPath === "string" ? raw.authPath.trim() : defaults.authPath,
     basis: pick3(raw.basis, defaults.basis),
-    singleWindow: pickWindow(raw.singleWindow, defaults.singleWindow)
+    singleWindow: normalizeSingleWindow(raw.singleWindow, legacyDisplayMode, defaults.singleWindow)
   };
 }
 function pick3(value, fallback) {
   return typeof value === "string" && value.length > 0 ? value : fallback;
 }
-function pickWindow(value, fallback) {
-  return value === "primary" || value === "weekly" || value === "auto" ? value : fallback;
+function normalizeDisplayMode(value) {
+  if (value === "dual-bars" || value === "ring" || value === "warning-tile" || value === "split") {
+    return value;
+  }
+  if (value === "weekly-tile" || value === "lowest") {
+    return "ring";
+  }
+  return "dual-bars";
+}
+function normalizeSingleWindow(value, displayMode, fallback) {
+  if (value === "primary" || value === "weekly" || value === "auto") {
+    return value;
+  }
+  if (displayMode === "weekly-tile") {
+    return "weekly";
+  }
+  return fallback;
 }
 function toBool(value, fallback) {
   if (typeof value === "boolean") {
@@ -17531,14 +17547,10 @@ function renderUsageSvg(snapshot, settings2) {
   switch (settings2.displayMode) {
     case "ring":
       return renderRing(snapshot, settings2);
-    case "weekly-tile":
-      return renderWeeklyTile(snapshot, settings2);
     case "warning-tile":
       return renderWarningTile(snapshot, settings2);
     case "split":
       return renderSplit(snapshot, settings2);
-    case "lowest":
-      return renderLowest(snapshot, settings2);
     case "dual-bars":
     default:
       return renderDualBars(snapshot, settings2);
@@ -17643,20 +17655,6 @@ function renderRing(snapshot, settings2) {
   ${settings2.showPlan ? planLabel(snapshot.planType, p) : ""}
 ${end()}`;
 }
-function renderWeeklyTile(snapshot, settings2) {
-  const active = selectSingleWindow(snapshot, settings2, "weekly");
-  const level = getLevel(active.remainingPercent, settings2);
-  const mood = getMood(level, settings2);
-  const p = palette(level, mood?.pulse);
-  const value = valueFor(active, settings2);
-  return `${base(p)}
-  <rect x="13" y="13" width="118" height="118" rx="22" fill="${p.accent}"/>
-  <text x="72" y="42" fill="#08111a" font-size="18" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${active.label}</text>
-  <text x="72" y="86" fill="#08111a" font-size="42" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${value}%</text>
-  <text x="72" y="111" fill="#08111a" font-size="16" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings2.showReset ? esc2(active.resetText) : ""}</text>
-  ${renderMood({ ...snapshot, level, mood }, { ...p, text: "#08111a", muted: "#08111a" }, 2)}
-${end()}`;
-}
 function renderWarningTile(snapshot, settings2) {
   const active = selectSingleWindow(snapshot, settings2, "lowest");
   const level = getLevel(active.remainingPercent, settings2);
@@ -17689,20 +17687,6 @@ function renderSplit(snapshot, settings2) {
   <text x="24" y="124" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="900">${w1}%</text>
   <text x="105" y="120" fill="${p.muted}" font-size="13" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings2.showReset ? esc2(snapshot.weekly.resetText) : ""}</text>
   ${renderMood(snapshot, p, 0)}
-${end()}`;
-}
-function renderLowest(snapshot, settings2) {
-  const active = selectSingleWindow(snapshot, settings2, "lowest");
-  const level = getLevel(active.remainingPercent, settings2);
-  const mood = getMood(level, settings2);
-  const p = palette(level, mood?.pulse);
-  const value = valueFor(active, settings2);
-  return `${base(p)}
-  <text x="72" y="38" fill="${p.accent}" font-size="19" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${active.label}</text>
-  <text x="72" y="89" fill="${p.text}" font-size="48" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${value}%</text>
-  <text x="72" y="114" fill="${p.text}" font-size="16" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings2.showReset ? esc2(active.resetText) : ""}</text>
-  ${renderMood({ ...snapshot, level, mood }, p, 2)}
-  ${settings2.showSpark ? sparkLabel(snapshot, p, settings2) : ""}
 ${end()}`;
 }
 function renderErrorSvg(error40) {

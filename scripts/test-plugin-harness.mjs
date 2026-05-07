@@ -64,10 +64,16 @@ const scenarios = [
     expectDecodedAll: ["82%", "WK"],
   },
   {
-    name: "tile can show primary",
+    name: "warning tile can show primary",
     env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "mixed-usage.json") },
-    settings: { displayMode: "weekly-tile", singleWindow: "primary" },
-    expectDecodedAll: ["46%", "5H"],
+    settings: { displayMode: "warning-tile", singleWindow: "primary" },
+    expectDecoded: "46%",
+  },
+  {
+    name: "legacy weekly tile maps to weekly ring",
+    env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "mixed-usage.json") },
+    settings: { displayMode: "weekly-tile" },
+    expectDecodedAll: ["83%", "WK"],
   },
   {
     name: "missing login",

@@ -1,9 +1,14 @@
 # Release Notes
 
+## 0.1.3.0
+
+- Removes redundant weekly-tile and lowest-remaining display modes.
+- Keeps legacy saved settings working by mapping old weekly-tile keys to weekly ring gauge and old lowest keys to auto ring gauge.
+
 ## 0.1.2.0
 
 - Adds a Single display selector for one-window modes: Auto, 5-hour, or Weekly.
-- Lets ring gauge, tile, warning tile, and lowest modes target either quota window.
+- Lets ring gauge and warning tile target either quota window.
 
 ## 0.1.1.0
 
@@ -16,7 +21,7 @@ Initial release.
 
 - Display Codex 5-hour and weekly usage windows on a Stream Deck key.
 - Show remaining or used percentage.
-- Include visual modes: dual bars, ring gauge, weekly tile, warning tile, split key, and lowest remaining.
+- Initial visual modes included dual bars, ring gauge, weekly tile, warning tile, split key, and lowest remaining.
 - Add configurable thresholds, reset countdowns, and optional mood/status indicators.
 - Add login, auth-expired, network, and endpoint-changed error states.
 - Read the existing local Codex login from `~/.codex/auth.json`.

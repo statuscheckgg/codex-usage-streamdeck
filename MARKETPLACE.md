@@ -8,7 +8,7 @@ Built plugin installer:
 
 Public release:
 
-`https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.2`
+`https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.3`
 
 ## Current Status
 
@@ -31,7 +31,7 @@ Short description:
 
 Description:
 
-`Codex Usage Monitor is an unofficial local Stream Deck plugin that shows Codex 5-hour and weekly usage windows using your existing Codex login. Choose from bar, ring, weekly tile, warning tile, split, and lowest-remaining visual modes. Configure thresholds, reset countdowns, and optional mood indicators that update more frequently as limits get low.`
+`Codex Usage Monitor is an unofficial local Stream Deck plugin that shows Codex 5-hour and weekly usage windows using your existing Codex login. Choose from dual-bar, ring gauge, warning tile, and split-key visual modes. Configure thresholds, reset countdowns, single-window targeting, and optional mood indicators that update more frequently as limits get low.`
 
 Disclosure:
 
@@ -68,7 +68,7 @@ Public links:
 
 - Dual bars normal green state
 - Ring gauge warning state
-- Weekly tile and "Oh No" red state
+- Warning and "Oh No" red state
 - Property inspector settings
 
 ## First Release Notes
@@ -85,6 +85,6 @@ Public links:
 ## Submission Status
 
 - GitHub repo published.
-- v0.1.2 release created with the `.streamDeckPlugin` installer attached.
+- v0.1.3 release created with the `.streamDeckPlugin` installer attached.
 - Elgato `streamdeck validate` passes after public URL resolution.
 - Remaining step is Maker Console upload and review submission.
