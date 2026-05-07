@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.1.4.0
+
+- Declares Stream Deck manifest SDK version 3 for Maker Console compatibility.
+- Keeps the official `@elgato/streamdeck` v2 runtime bundle and Stream Deck 7.1 / Node 24 requirements.
+
 ## 0.1.3.0
 
 - Removes redundant weekly-tile and lowest-remaining display modes.

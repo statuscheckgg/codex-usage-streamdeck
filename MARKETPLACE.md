@@ -8,7 +8,7 @@ Built plugin installer:
 
 Public release:
 
-`https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.3`
+`https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.4`
 
 ## Current Status
 
@@ -85,6 +85,6 @@ Public links:
 ## Submission Status
 
 - GitHub repo published.
-- v0.1.3 release created with the `.streamDeckPlugin` installer attached.
+- v0.1.4 release created with the `.streamDeckPlugin` installer attached.
 - Elgato `streamdeck validate` passes after public URL resolution.
 - Remaining step is Maker Console upload and review submission.

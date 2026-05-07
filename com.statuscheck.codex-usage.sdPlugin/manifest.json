@@ -39,12 +39,12 @@
       "MinimumVersion": "13"
     }
   ],
-  "SDKVersion": 2,
+  "SDKVersion": 3,
   "Software": {
     "MinimumVersion": "7.1"
   },
   "SupportURL": "https://github.com/statuscheckgg/codex-usage-streamdeck/issues",
   "URL": "https://github.com/statuscheckgg/codex-usage-streamdeck",
   "UUID": "com.statuscheck.codex-usage",
-  "Version": "0.1.3.0"
+  "Version": "0.1.4.0"
 }

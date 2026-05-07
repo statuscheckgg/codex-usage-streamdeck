@@ -9,7 +9,7 @@ import streamDeck, { SingletonAction } from "@elgato/streamdeck";
 const PLUGIN_UUID = "com.statuscheck.codex-usage";
 const ACTION_UUID = "com.statuscheck.codex-usage.usage";
 const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
-const PLUGIN_VERSION = "0.1.3.0";
+const PLUGIN_VERSION = "0.1.4.0";
 
 const actions = new Map();
 
