@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.1.1.0
+
+- Bundles the official Stream Deck SDK runtime for Marketplace compatibility.
+- Colors 5-hour and weekly quota indicators independently in dual-bar and split views.
+
 ## 0.1.0.0
 
 Initial release.
