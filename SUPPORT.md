@@ -28,4 +28,6 @@ If the key shows `API CHANGED`, the internal Codex usage endpoint or response sh
 
 Codex Usage Monitor is free. If it saves you time, optional support is welcome:
 
+Don't pay me. This took me 2-3 hours because I was mad about paying 4+ bucks.
+
 https://buymeacoffee.com/statuscheck
