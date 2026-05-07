@@ -12,7 +12,7 @@ The plugin displays Codex usage from the local Codex login:
 
 ## User Experience
 
-Marketplace users should not need Node.js, npm, Stream Deck CLI, PowerShell, API Ninja, or a local bridge server.
+Users should not need Node.js, npm, Stream Deck CLI, PowerShell, API Ninja, or a local bridge server.
 
 Expected setup:
 
@@ -23,11 +23,7 @@ Expected setup:
 
 ## Install For Testing
 
-Download or build `com.statuscheck.codex-usage.streamDeckPlugin`, then double-click it to install into Stream Deck.
-
-Current local package path during development:
-
-`C:\Vibes\Projects\Personal\Codex-Usage-StreamDeck\com.statuscheck.codex-usage.streamDeckPlugin`
+Download the latest `.streamDeckPlugin` file from the GitHub releases page, then double-click it to install into Stream Deck.
 
 ## Display Modes
 
@@ -85,8 +81,6 @@ Use GitHub issues for support:
 
 https://github.com/statuscheckgg/codex-usage-streamdeck/issues
 
-This plugin is free. If it saves you time, optional support is welcome:
-
-Don't pay me. This took me 2-3 hours because I was mad about paying 4+ bucks.
+This plugin is free, with no paywall. If it saves you time, optional support is welcome:
 
 https://buymeacoffee.com/statuscheck
