@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+  <rect width="144" height="144" rx="28" fill="#111722"/>
+  <path d="M27 53h90M27 91h90" stroke="#32e36f" stroke-width="8" stroke-linecap="round"/>
+  <text x="72" y="43" fill="#f7fbff" font-size="23" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">CODEX</text>
+  <text x="72" y="126" fill="#9ca8b8" font-size="16" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">usage</text>
+</svg>

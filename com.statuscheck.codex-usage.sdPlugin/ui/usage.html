@@ -1,0 +1,287 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Codex Usage Settings</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #1b1b1f;
+      color: #e9edf3;
+    }
+    body {
+      margin: 0;
+      padding: 14px;
+      font-size: 12px;
+    }
+    h2 {
+      margin: 16px 0 8px;
+      font-size: 12px;
+      color: #9ca8b8;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    label {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 10px;
+      align-items: center;
+      min-height: 30px;
+      margin: 6px 0;
+    }
+    input,
+    select {
+      min-width: 0;
+      border: 1px solid #3a3d45;
+      border-radius: 6px;
+      background: #111318;
+      color: #f4f6f8;
+      padding: 6px 8px;
+      font: inherit;
+    }
+    input[type="checkbox"] {
+      justify-self: start;
+      width: 18px;
+      height: 18px;
+    }
+    .hint {
+      line-height: 1.35;
+      color: #a7b0bd;
+      background: #12161d;
+      border: 1px solid #2b3340;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 8px 0 12px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .row label {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 7px;
+      background: #2ddc74;
+      color: #07120d;
+      padding: 8px 10px;
+      margin-top: 10px;
+      font: inherit;
+      font-weight: 800;
+    }
+    .footer {
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid #2b3340;
+      color: #8e99a8;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .footer code {
+      color: #c6d0dd;
+      font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="hint">
+    This unofficial monitor reads your local Codex auth file and requests usage from ChatGPT. Tokens are not displayed, logged, or sent anywhere except OpenAI.
+  </div>
+
+  <h2>Display</h2>
+  <label>
+    Mode
+    <select id="displayMode">
+      <option value="dual-bars">Dual bars</option>
+      <option value="ring">Ring gauge</option>
+      <option value="weekly-tile">Weekly tile</option>
+      <option value="warning-tile">Warning tile</option>
+      <option value="split">Split key</option>
+      <option value="lowest">Lowest remaining</option>
+    </select>
+  </label>
+  <label>
+    Percent
+    <select id="basis">
+      <option value="remaining">Remaining</option>
+      <option value="used">Used</option>
+    </select>
+  </label>
+  <label>
+    Refresh seconds
+    <input id="refreshSeconds" type="number" min="15" max="3600" step="15">
+  </label>
+  <label>
+    Show reset time
+    <input id="showReset" type="checkbox">
+  </label>
+  <label>
+    Show plan label
+    <input id="showPlan" type="checkbox">
+  </label>
+
+  <h2>Thresholds</h2>
+  <div class="row">
+    <label>
+      Yellow at
+      <input id="yellowThreshold" type="number" min="1" max="99">
+    </label>
+    <label>
+      Red at
+      <input id="redThreshold" type="number" min="1" max="99">
+    </label>
+    <label>
+      Oh no at
+      <input id="criticalThreshold" type="number" min="1" max="99">
+    </label>
+  </div>
+
+  <h2>Mood</h2>
+  <label>
+    Mood icons
+    <input id="moodEnabled" type="checkbox">
+  </label>
+  <label>
+    Pulse low state
+    <input id="pulseEnabled" type="checkbox">
+  </label>
+  <div class="row">
+    <label>
+      Green minutes
+      <input id="greenMoodMinutes" type="number" min="1" max="240">
+    </label>
+    <label>
+      Yellow minutes
+      <input id="yellowMoodMinutes" type="number" min="1" max="120">
+    </label>
+    <label>
+      Red minutes
+      <input id="redMoodMinutes" type="number" min="1" max="60">
+    </label>
+  </div>
+
+  <h2>Advanced</h2>
+  <label>
+    Auth path
+    <input id="authPath" type="text" placeholder="Blank uses ~/.codex/auth.json">
+  </label>
+  <label>
+    Spark limit
+    <input id="showSpark" type="checkbox">
+  </label>
+  <button id="refreshNow" type="button">Refresh Now</button>
+  <div class="footer">
+    Codex Usage Monitor <code>v0.1.0.0</code><br>
+    Support info: action <code>com.statuscheck.codex-usage.usage</code>
+  </div>
+
+  <script>
+    let websocket = null;
+    let uuid = null;
+    let actionInfo = null;
+
+    const defaults = {
+      displayMode: "dual-bars",
+      basis: "remaining",
+      refreshSeconds: 300,
+      yellowThreshold: 50,
+      redThreshold: 20,
+      criticalThreshold: 10,
+      moodEnabled: true,
+      pulseEnabled: true,
+      greenMoodMinutes: 15,
+      yellowMoodMinutes: 5,
+      redMoodMinutes: 1,
+      showReset: true,
+      showPlan: false,
+      showSpark: false,
+      authPath: ""
+    };
+
+    const ids = Object.keys(defaults);
+
+    function connectElgatoStreamDeckSocket(inPort, inPluginUUID, inRegisterEvent, inInfo, inActionInfo) {
+      uuid = inPluginUUID;
+      actionInfo = JSON.parse(inActionInfo);
+      websocket = new WebSocket("ws://127.0.0.1:" + inPort);
+      websocket.onopen = function () {
+        websocket.send(JSON.stringify({ event: inRegisterEvent, uuid }));
+        websocket.send(JSON.stringify({ event: "getSettings", context: uuid }));
+      };
+      websocket.onmessage = function (event) {
+        const message = JSON.parse(event.data);
+        if (message.event === "didReceiveSettings") {
+          applySettings({ ...defaults, ...(message.payload.settings || {}) });
+        }
+      };
+    }
+
+    function applySettings(settings) {
+      for (const id of ids) {
+        const element = document.getElementById(id);
+        if (!element) continue;
+        if (element.type === "checkbox") {
+          element.checked = Boolean(settings[id]);
+        } else {
+          element.value = settings[id];
+        }
+      }
+    }
+
+    function readSettings() {
+      const settings = {};
+      for (const id of ids) {
+        const element = document.getElementById(id);
+        if (!element) continue;
+        if (element.type === "checkbox") {
+          settings[id] = element.checked;
+        } else if (element.type === "number") {
+          settings[id] = Number(element.value);
+        } else {
+          settings[id] = element.value;
+        }
+      }
+      return settings;
+    }
+
+    function saveSettings() {
+      if (!websocket || websocket.readyState !== WebSocket.OPEN || !actionInfo) {
+        return;
+      }
+      websocket.send(JSON.stringify({
+        event: "setSettings",
+        context: uuid,
+        payload: readSettings()
+      }));
+    }
+
+    for (const id of ids) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.addEventListener("input", saveSettings);
+        element.addEventListener("change", saveSettings);
+      }
+    }
+
+    document.getElementById("refreshNow").addEventListener("click", function () {
+      if (!websocket || websocket.readyState !== WebSocket.OPEN || !actionInfo) {
+        return;
+      }
+      websocket.send(JSON.stringify({
+        event: "sendToPlugin",
+        context: uuid,
+        action: actionInfo.action,
+        payload: { type: "refresh" }
+      }));
+    });
+
+    applySettings(defaults);
+  </script>
+</body>
+</html>
