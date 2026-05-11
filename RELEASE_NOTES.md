@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.1.6.0
+
+- Increases quota-window labels and reset countdown text size for better readability on hardware keys.
+
 ## 0.1.5.0
 
 - Updates the app/plugin icon to match the live dual-bars Stream Deck key display.

@@ -4,7 +4,7 @@
 
 - Name: `Codex Usage Monitor`
 - Type: Stream Deck plugin
-- Version: `0.1.5.0`
+- Version: `0.1.6.0`
 - Price: Free
 - Author: `Status Check`
 - Plugin file: `com.statuscheck.codex-usage.streamDeckPlugin`
@@ -44,7 +44,7 @@ Initial release with Codex 5-hour and weekly usage display, configurable visual 
 - Product/support: `https://github.com/statuscheckgg/codex-usage-streamdeck`
 - Issues: `https://github.com/statuscheckgg/codex-usage-streamdeck/issues`
 - Privacy: `https://github.com/statuscheckgg/codex-usage-streamdeck/blob/main/PRIVACY.md`
-- Release: `https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.5`
+- Release: `https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.6`
 - Optional support: `https://buymeacoffee.com/statuscheck`
 
 ## Review Notes

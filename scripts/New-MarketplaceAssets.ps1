@@ -74,15 +74,15 @@ function DrawBarKey($g, $x, $y, $scale, $five, $week, $level = "green") {
     $panel = if ($level -eq "red") { "#1d1421" } else { "#111a25" }
     FillRound $g $x $y (300*$scale) (300*$scale) (52*$scale) $panel
     Text $g "$five%" ($x+48*$scale) ($y+55*$scale) (58*$scale) "#f6fff8" ([System.Drawing.FontStyle]::Bold)
-    Text $g "5H" ($x+230*$scale) ($y+45*$scale) (32*$scale) $accent ([System.Drawing.FontStyle]::Bold) "Center"
-    Text $g "4h" ($x+230*$scale) ($y+92*$scale) (27*$scale) "#f6fff8" ([System.Drawing.FontStyle]::Bold) "Center"
+    Text $g "5H" ($x+230*$scale) ($y+41*$scale) (38*$scale) $accent ([System.Drawing.FontStyle]::Bold) "Center"
+    Text $g "4h" ($x+230*$scale) ($y+91*$scale) (32*$scale) "#f6fff8" ([System.Drawing.FontStyle]::Bold) "Center"
     $track = Pen "#263241" (14*$scale)
     $pen = Pen $accent (14*$scale)
     $g.DrawLine($track, $x+50*$scale, $y+140*$scale, $x+247*$scale, $y+140*$scale)
     $g.DrawLine($pen, $x+50*$scale, $y+140*$scale, $x+(50+1.97*$five)*$scale, $y+140*$scale)
     Text $g "$week%" ($x+48*$scale) ($y+178*$scale) (58*$scale) "#f6fff8" ([System.Drawing.FontStyle]::Bold)
-    Text $g "WK" ($x+230*$scale) ($y+168*$scale) (32*$scale) $accent ([System.Drawing.FontStyle]::Bold) "Center"
-    Text $g "6d" ($x+230*$scale) ($y+215*$scale) (27*$scale) "#f6fff8" ([System.Drawing.FontStyle]::Bold) "Center"
+    Text $g "WK" ($x+230*$scale) ($y+164*$scale) (38*$scale) $accent ([System.Drawing.FontStyle]::Bold) "Center"
+    Text $g "6d" ($x+230*$scale) ($y+214*$scale) (32*$scale) "#f6fff8" ([System.Drawing.FontStyle]::Bold) "Center"
     $g.DrawLine($track, $x+50*$scale, $y+265*$scale, $x+247*$scale, $y+265*$scale)
     $g.DrawLine($pen, $x+50*$scale, $y+265*$scale, $x+(50+1.97*$week)*$scale, $y+265*$scale)
     $track.Dispose()
@@ -98,8 +98,8 @@ function DrawRingKey($g, $x, $y, $scale, $value, $level = "green") {
     $g.DrawArc($track, $rect, 130, 280)
     $g.DrawArc($pen, $rect, 130, 280*($value/100))
     Text $g "$value%" ($x+150*$scale) ($y+118*$scale) (58*$scale) "#f6fff8" ([System.Drawing.FontStyle]::Bold) "Center"
-    Text $g "5H" ($x+150*$scale) ($y+180*$scale) (26*$scale) "#f6fff8" ([System.Drawing.FontStyle]::Bold) "Center"
-    Text $g "4h" ($x+150*$scale) ($y+224*$scale) (26*$scale) "#f6fff8" ([System.Drawing.FontStyle]::Bold) "Center"
+    Text $g "5H" ($x+150*$scale) ($y+178*$scale) (31*$scale) "#f6fff8" ([System.Drawing.FontStyle]::Bold) "Center"
+    Text $g "4h" ($x+150*$scale) ($y+222*$scale) (31*$scale) "#f6fff8" ([System.Drawing.FontStyle]::Bold) "Center"
     $track.Dispose()
     $pen.Dispose()
 }
@@ -112,7 +112,7 @@ function DrawWarningKey($g, $x, $y, $scale) {
     $pen = Pen "#ff335d" (18*$scale)
     $g.DrawLine($track, $x+70*$scale, $y+218*$scale, $x+230*$scale, $y+218*$scale)
     $g.DrawLine($pen, $x+70*$scale, $y+218*$scale, $x+91*$scale, $y+218*$scale)
-    Text $g "46m" ($x+150*$scale) ($y+238*$scale) (28*$scale) "#fff8fb" ([System.Drawing.FontStyle]::Bold) "Center"
+    Text $g "46m" ($x+150*$scale) ($y+236*$scale) (34*$scale) "#fff8fb" ([System.Drawing.FontStyle]::Bold) "Center"
     $track.Dispose()
     $pen.Dispose()
 }

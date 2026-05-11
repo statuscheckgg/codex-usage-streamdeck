@@ -8,7 +8,7 @@ Built plugin installer:
 
 Public release:
 
-`https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.5`
+`https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.6`
 
 ## Current Status
 
@@ -92,6 +92,6 @@ Public links:
 ## Submission Status
 
 - GitHub repo published.
-- v0.1.5 release created with the `.streamDeckPlugin` installer attached.
+- v0.1.6 release created with the `.streamDeckPlugin` installer attached.
 - Elgato `streamdeck validate` passes after public URL resolution.
 - Rejection response materials are prepared in `ELGATO_REVIEW_RESPONSE.md`, including expanded description copy, revised non-overlapping media, and demo video path.

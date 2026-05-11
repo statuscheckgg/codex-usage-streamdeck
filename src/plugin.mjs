@@ -9,7 +9,7 @@ import streamDeck, { SingletonAction } from "@elgato/streamdeck";
 const PLUGIN_UUID = "com.statuscheck.codex-usage";
 const ACTION_UUID = "com.statuscheck.codex-usage.usage";
 const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
-const PLUGIN_VERSION = "0.1.5.0";
+const PLUGIN_VERSION = "0.1.6.0";
 
 const actions = new Map();
 
@@ -486,13 +486,13 @@ function renderDualBars(snapshot, settings) {
   const weeklyWidth = Math.max(4, weekly * 0.83);
   return `${base(p)}
   <text x="23" y="45" fill="${p.text}" font-size="26" font-family="Arial, sans-serif" font-weight="800">${primary}%</text>
-  <text x="110" y="33" fill="${primaryPalette.accent}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">5H</text>
-  <text x="110" y="52" fill="${p.text}" font-size="13" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">${settings.showReset ? esc(snapshot.primary.resetText) : " "}</text>
+  <text x="110" y="33" fill="${primaryPalette.accent}" font-size="17" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">5H</text>
+  <text x="110" y="53" fill="${p.text}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(snapshot.primary.resetText) : " "}</text>
   <line x1="24" y1="65" x2="107" y2="65" stroke="${p.track}" stroke-width="6" stroke-linecap="round"/>
   <line x1="24" y1="65" x2="${24 + primaryWidth}" y2="65" stroke="${primaryPalette.accent}" stroke-width="6" stroke-linecap="round"/>
   <text x="23" y="103" fill="${p.text}" font-size="26" font-family="Arial, sans-serif" font-weight="800">${weekly}%</text>
-  <text x="110" y="91" fill="${weeklyPalette.accent}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">WK</text>
-  <text x="110" y="110" fill="${p.text}" font-size="13" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">${settings.showReset ? esc(snapshot.weekly.resetText) : " "}</text>
+  <text x="110" y="91" fill="${weeklyPalette.accent}" font-size="17" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">WK</text>
+  <text x="110" y="111" fill="${p.text}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(snapshot.weekly.resetText) : " "}</text>
   <line x1="24" y1="123" x2="107" y2="123" stroke="${p.track}" stroke-width="6" stroke-linecap="round"/>
   <line x1="24" y1="123" x2="${24 + weeklyWidth}" y2="123" stroke="${weeklyPalette.accent}" stroke-width="6" stroke-linecap="round"/>
   ${renderMood(snapshot, p, 0)}
@@ -512,8 +512,8 @@ function renderRing(snapshot, settings) {
   <circle cx="72" cy="68" r="43" fill="none" stroke="${p.track}" stroke-width="10" stroke-linecap="round"/>
   <path d="${arc}" fill="none" stroke="${p.accent}" stroke-width="10" stroke-linecap="round"/>
   <text x="72" y="67" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${value}%</text>
-  <text x="72" y="84" fill="${p.text}" font-size="12" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${active.label}</text>
-  <text x="72" y="111" fill="${p.text}" font-size="13" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">${settings.showReset ? esc(active.resetText) : ""}</text>
+  <text x="72" y="85" fill="${p.text}" font-size="14" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${active.label}</text>
+  <text x="72" y="113" fill="${p.text}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(active.resetText) : ""}</text>
   ${renderMood({ ...snapshot, level, mood }, p, 1)}
   ${settings.showSpark ? sparkLabel(snapshot, p, settings) : ""}
   ${settings.showPlan ? planLabel(snapshot.planType, p) : ""}
@@ -528,11 +528,11 @@ function renderWarningTile(snapshot, settings) {
   const value = valueFor(active, settings);
   const label = level === "green" ? active.label : mood?.text || active.label;
   return `${base(p)}
-  <text x="72" y="39" fill="${p.accent}" font-size="16" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${esc(label)}</text>
+  <text x="72" y="40" fill="${p.accent}" font-size="18" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${esc(label)}</text>
   <text x="72" y="87" fill="${p.text}" font-size="47" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${value}%</text>
   <line x1="38" y1="104" x2="106" y2="104" stroke="${p.track}" stroke-width="9" stroke-linecap="round"/>
   <line x1="38" y1="104" x2="${38 + Math.max(5, value * 0.68)}" y2="104" stroke="${p.accent}" stroke-width="9" stroke-linecap="round"/>
-  <text x="72" y="126" fill="${p.text}" font-size="14" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(active.resetText) : active.label}</text>
+  <text x="72" y="127" fill="${p.text}" font-size="16" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${settings.showReset ? esc(active.resetText) : active.label}</text>
 ${end()}`;
 }
 
@@ -546,12 +546,12 @@ function renderSplit(snapshot, settings) {
   <rect width="144" height="144" rx="28" fill="${p.bg}"/>
   <rect x="10" y="10" width="124" height="59" rx="21" fill="${p.panel}"/>
   <rect x="10" y="75" width="124" height="59" rx="21" fill="${p.panel}"/>
-  <text x="24" y="34" fill="${primaryPalette.accent}" font-size="14" font-family="Arial, sans-serif" font-weight="900">5H</text>
+  <text x="24" y="35" fill="${primaryPalette.accent}" font-size="16" font-family="Arial, sans-serif" font-weight="900">5H</text>
   <text x="24" y="59" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="900">${p1}%</text>
-  <text x="105" y="55" fill="${p.muted}" font-size="13" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(snapshot.primary.resetText) : ""}</text>
-  <text x="24" y="99" fill="${weeklyPalette.accent}" font-size="14" font-family="Arial, sans-serif" font-weight="900">WK</text>
+  <text x="105" y="56" fill="${p.muted}" font-size="15" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${settings.showReset ? esc(snapshot.primary.resetText) : ""}</text>
+  <text x="24" y="100" fill="${weeklyPalette.accent}" font-size="16" font-family="Arial, sans-serif" font-weight="900">WK</text>
   <text x="24" y="124" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="900">${w1}%</text>
-  <text x="105" y="120" fill="${p.muted}" font-size="13" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(snapshot.weekly.resetText) : ""}</text>
+  <text x="105" y="121" fill="${p.muted}" font-size="15" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${settings.showReset ? esc(snapshot.weekly.resetText) : ""}</text>
   ${renderMood(snapshot, p, 0)}
 ${end()}`;
 }
