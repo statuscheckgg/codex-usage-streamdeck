@@ -1,15 +1,16 @@
-# Elgato Marketplace Submission
+# Elgato Review Response Materials
 
-## Product
+## Summary
 
-- Name: `Codex Usage Monitor`
-- Type: Stream Deck plugin
-- Version: `0.1.5.0`
-- Price: Free
-- Author: `Status Check`
-- Plugin file: `com.statuscheck.codex-usage.streamDeckPlugin`
+Elgato requested three revisions for Codex Usage Monitor:
 
-## Description
+- Add more product-functionality detail to the description.
+- Update product media to avoid overlapping text and imagery.
+- Send a short demo video to `maker@elgato.com`.
+
+The revised materials are prepared locally and ready for resubmission.
+
+## Updated Description
 
 Codex Usage Monitor is an unofficial local Stream Deck plugin that shows current Codex usage directly on a Stream Deck key. It uses the existing local Codex login to request usage data from ChatGPT, then displays remaining or used percentage for the 5-hour and weekly Codex usage windows.
 
@@ -21,35 +22,47 @@ The plugin includes clear status screens for first-run and error states, includi
 
 This plugin is unofficial and is not affiliated with OpenAI. It reads the local Codex auth file and sends authenticated usage requests only to OpenAI/ChatGPT. Tokens are not displayed, logged, stored by the plugin, or sent to the plugin author.
 
-## Short Description
+## Updated Media Files
 
-Track Codex 5-hour and weekly usage windows directly on your Stream Deck.
+Use these revised files in Maker Console:
 
-## Release Notes
-
-Initial release with Codex 5-hour and weekly usage display, configurable visual modes, thresholds, reset countdowns, local Codex auth detection, optional Spark limit display, and adjustable mood indicators.
-
-## Required Upload Files
-
-- Product file: `com.statuscheck.codex-usage.streamDeckPlugin`
+- Icon: `marketplace-assets\icon-288x288.png`
 - Thumbnail: `marketplace-assets\thumbnail-1920x960.png`
 - Gallery: `marketplace-assets\gallery-dual-bars-green.png`
 - Gallery: `marketplace-assets\gallery-ring-warning.png`
 - Gallery: `marketplace-assets\gallery-property-inspector.png`
 - Gallery: `marketplace-assets\gallery-oh-no-critical.png`
-- Demo video for Elgato review email: `marketplace-assets\codex-usage-monitor-demo.mp4`
 
-## Links
+The gallery images were regenerated with shorter text and separated text/visual areas to avoid overlapping information.
 
-- Product/support: `https://github.com/statuscheckgg/codex-usage-streamdeck`
-- Issues: `https://github.com/statuscheckgg/codex-usage-streamdeck/issues`
-- Privacy: `https://github.com/statuscheckgg/codex-usage-streamdeck/blob/main/PRIVACY.md`
-- Release: `https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.5`
-- Optional support: `https://buymeacoffee.com/statuscheck`
+## Demo Video
 
-## Review Notes
+Send this file to `maker@elgato.com`:
 
-- The plugin uses an internal Codex/ChatGPT usage endpoint, not a documented public OpenAI API.
-- The Property Inspector and listing disclose that the plugin reads local Codex auth.
-- The plugin does not refresh tokens directly; users refresh login through Codex.
-- The plugin is free; the Buy Me a Coffee link is optional support only.
+`marketplace-assets\codex-usage-monitor-demo.mp4`
+
+Video details:
+
+- Format: MP4 / H.264
+- Resolution: 1920x1080
+- Duration: 19 seconds
+- No audio
+
+## Reply Email Draft
+
+Subject: Codex Usage Monitor review updates and demo video
+
+Hi Elgato Maker team,
+
+Thank you for the review feedback. I have updated the Codex Usage Monitor submission with the requested changes:
+
+- Expanded the product description to explain the plugin functionality, display modes, refresh behavior, configurable settings, status/error states, and privacy/auth handling.
+- Replaced the product media with revised images that keep text and visuals separated to avoid overlapping information.
+- Prepared a short demo video showing the main display states, visual modes, Property Inspector configuration, and low-limit state.
+
+The revised product page has been updated in Maker Console. I have attached the requested demo video: `codex-usage-monitor-demo.mp4`.
+
+Please let me know if anything else is needed for review.
+
+Thanks,
+Status Check

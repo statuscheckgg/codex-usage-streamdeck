@@ -31,7 +31,13 @@ Short description:
 
 Description:
 
-`Codex Usage Monitor is an unofficial local Stream Deck plugin that shows Codex 5-hour and weekly usage windows using your existing Codex login. Choose from dual-bar, ring gauge, warning tile, and split-key visual modes. Configure thresholds, reset countdowns, single-window targeting, and optional mood indicators that update more frequently as limits get low.`
+`Codex Usage Monitor is an unofficial local Stream Deck plugin that shows current Codex usage directly on a Stream Deck key. It uses the existing local Codex login to request usage data from ChatGPT, then displays remaining or used percentage for the 5-hour and weekly Codex usage windows.
+
+The key refreshes automatically at a configurable interval and can also be refreshed manually by pressing the key. Display modes include dual bars for both quota windows, a ring gauge, a warning tile, and a split-key view. Single-window modes can show the lowest remaining window automatically or be locked to the 5-hour or weekly window.
+
+Users can configure visual mode, remaining/used percentage basis, refresh timing, threshold colors, reset countdown labels, optional Spark/model-specific limit display, and optional mood indicators. Mood indicators and pulse behavior can be turned off, or left enabled so the key changes status more frequently as remaining usage gets low.
+
+The plugin includes clear status screens for first-run and error states, including Login Codex, Auth Expired, Network Retry, and API Changed.`
 
 Disclosure:
 
@@ -54,8 +60,9 @@ Generated local assets:
 - `marketplace-assets\thumbnail-1920x960.png`
 - `marketplace-assets\gallery-dual-bars-green.png`
 - `marketplace-assets\gallery-ring-warning.png`
-- `marketplace-assets\gallery-oh-no-critical.png`
 - `marketplace-assets\gallery-property-inspector.png`
+- `marketplace-assets\gallery-oh-no-critical.png`
+- `marketplace-assets\codex-usage-monitor-demo.mp4`
 
 Public links:
 
@@ -87,4 +94,4 @@ Public links:
 - GitHub repo published.
 - v0.1.5 release created with the `.streamDeckPlugin` installer attached.
 - Elgato `streamdeck validate` passes after public URL resolution.
-- Remaining step is Maker Console upload and review submission.
+- Rejection response materials are prepared in `ELGATO_REVIEW_RESPONSE.md`, including expanded description copy, revised non-overlapping media, and demo video path.

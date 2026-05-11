@@ -128,52 +128,54 @@ function Background($g) {
 New-Bitmap (Join-Path $OutputDir "thumbnail-1920x960.png") {
     param($g)
     Background $g
-    Text $g "Codex Usage Monitor" 116 132 76 "#f6fff8" ([System.Drawing.FontStyle]::Bold)
-    Text $g "5-hour and weekly Codex limits on Stream Deck" 120 228 36 "#a7b0bd"
-    DrawBarKey $g 960 125 1.35 82 87 "green"
-    DrawRingKey $g 1350 210 1.1 82 "green"
-    DrawWarningKey $g 1110 560 .9
+    Text $g "Codex Usage Monitor" 120 132 76 "#f6fff8" ([System.Drawing.FontStyle]::Bold)
+    Text $g "Usage windows on Stream Deck" 124 228 36 "#a7b0bd"
+    DrawBarKey $g 1010 116 1.25 82 87 "green"
+    DrawRingKey $g 1370 180 1.02 82 "green"
+    DrawRingKey $g 1010 540 .9 38 "yellow"
+    DrawWarningKey $g 1320 520 .95
 }
 
 New-Bitmap (Join-Path $OutputDir "gallery-dual-bars-green.png") {
     param($g)
     Background $g
-    Text $g "Dual bars" 120 110 68 "#f6fff8" ([System.Drawing.FontStyle]::Bold)
-    Text $g "See 5-hour and weekly remaining usage at a glance." 124 200 34 "#a7b0bd"
-    DrawBarKey $g 970 175 1.65 82 87 "green"
+    Text $g "Dual bars" 120 120 70 "#f6fff8" ([System.Drawing.FontStyle]::Bold)
+    Text $g "5-hour and weekly usage together." 124 218 34 "#a7b0bd"
+    DrawBarKey $g 1050 155 1.62 82 87 "green"
 }
 
 New-Bitmap (Join-Path $OutputDir "gallery-ring-warning.png") {
     param($g)
     Background $g
-    Text $g "Ring gauge" 120 110 68 "#f6fff8" ([System.Drawing.FontStyle]::Bold)
-    Text $g "Switch modes and thresholds from the Property Inspector." 124 200 34 "#a7b0bd"
-    DrawRingKey $g 1030 165 1.65 38 "yellow"
+    Text $g "Ring gauge" 120 120 70 "#f6fff8" ([System.Drawing.FontStyle]::Bold)
+    Text $g "Single-window usage view." 124 218 34 "#a7b0bd"
+    DrawRingKey $g 1080 165 1.58 38 "yellow"
 }
 
 New-Bitmap (Join-Path $OutputDir "gallery-oh-no-critical.png") {
     param($g)
     Background $g
-    Text $g "Mood states" 120 110 68 "#f6fff8" ([System.Drawing.FontStyle]::Bold)
-    Text $g "Optional status changes become more frequent as limits get low." 124 200 34 "#a7b0bd"
-    DrawWarningKey $g 1040 165 1.65
+    Text $g "Low-limit state" 120 120 70 "#f6fff8" ([System.Drawing.FontStyle]::Bold)
+    Text $g "Optional low-limit alerts." 124 218 34 "#a7b0bd"
+    DrawWarningKey $g 1090 165 1.58
 }
 
 New-Bitmap (Join-Path $OutputDir "gallery-property-inspector.png") {
     param($g)
     Background $g
-    Text $g "Configurable" 120 110 68 "#f6fff8" ([System.Drawing.FontStyle]::Bold)
-    Text $g "Tune visual mode, thresholds, mood cadence, and reset labels." 124 200 34 "#a7b0bd"
-    FillRound $g 990 120 640 720 28 "#1b1b1f"
-    Text $g "DISPLAY" 1040 170 24 "#9ca8b8" ([System.Drawing.FontStyle]::Bold)
-    Text $g "Mode      Dual bars" 1040 230 32 "#f4f6f8"
-    Text $g "Percent   Remaining" 1040 288 32 "#f4f6f8"
-    Text $g "Refresh   300 seconds" 1040 346 32 "#f4f6f8"
-    Text $g "THRESHOLDS" 1040 430 24 "#9ca8b8" ([System.Drawing.FontStyle]::Bold)
-    Text $g "Yellow 50    Red 20    Oh no 10" 1040 490 32 "#f4f6f8"
-    Text $g "MOOD" 1040 574 24 "#9ca8b8" ([System.Drawing.FontStyle]::Bold)
-    Text $g "Mood icons on     Pulse low state on" 1040 634 32 "#f4f6f8"
-    Text $g "Codex Usage Monitor v0.1.0.0" 1040 760 24 "#8e99a8"
+    Text $g "Property Inspector" 120 120 70 "#f6fff8" ([System.Drawing.FontStyle]::Bold)
+    Text $g "Modes, thresholds, refresh, mood." 124 218 34 "#a7b0bd"
+    FillRound $g 970 105 700 750 28 "#1b1b1f"
+    Text $g "DISPLAY" 1030 160 24 "#9ca8b8" ([System.Drawing.FontStyle]::Bold)
+    Text $g "Mode                 Dual bars" 1030 220 32 "#f4f6f8"
+    Text $g "Single display        Auto" 1030 278 32 "#f4f6f8"
+    Text $g "Percent basis         Remaining" 1030 336 32 "#f4f6f8"
+    Text $g "Refresh interval      300 seconds" 1030 394 32 "#f4f6f8"
+    Text $g "THRESHOLDS" 1030 478 24 "#9ca8b8" ([System.Drawing.FontStyle]::Bold)
+    Text $g "Yellow 50     Red 20     Critical 10" 1030 538 32 "#f4f6f8"
+    Text $g "INDICATORS" 1030 622 24 "#9ca8b8" ([System.Drawing.FontStyle]::Bold)
+    Text $g "Mood icons on     Pulse low state on" 1030 682 32 "#f4f6f8"
+    Text $g "Privacy: uses local Codex auth; tokens are not logged." 1030 780 24 "#8e99a8"
 }
 
 Get-ChildItem -LiteralPath $OutputDir -Filter *.png | Select-Object FullName, Length
