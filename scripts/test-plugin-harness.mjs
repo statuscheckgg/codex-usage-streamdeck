@@ -33,7 +33,7 @@ const registrationInfo = JSON.stringify({
   ],
   plugin: {
     uuid: "com.statuscheck.codex-usage",
-    version: "0.1.0.0",
+    version: "0.1.10.0",
   },
 });
 
@@ -68,6 +68,42 @@ const scenarios = [
     env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "mixed-usage.json") },
     settings: { displayMode: "warning-tile", singleWindow: "primary" },
     expectDecodedAll: ["46%", "5H"],
+  },
+  {
+    name: "ring can show spark limit as selected single icon",
+    env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "spark-usage.json") },
+    settings: { displayMode: "ring", singleWindow: "spark" },
+    expectDecodedAll: ["62%", "SP"],
+  },
+  {
+    name: "legacy spark checkbox maps to selected single icon",
+    env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "spark-usage.json") },
+    settings: { displayMode: "warning-tile", showSpark: true },
+    expectDecodedAll: ["62%", "SP"],
+  },
+  {
+    name: "split reset text is white and right aligned",
+    env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "mixed-usage.json") },
+    settings: { displayMode: "split" },
+    expectDecodedAll: ["x=\"122\" y=\"56\" fill=\"#ffffff\" font-size=\"18\"", "text-anchor=\"end\">30m"],
+  },
+  {
+    name: "yellow threshold can flicker at configured interval",
+    env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "mixed-usage.json") },
+    settings: { displayMode: "dual-bars", yellowFlicker: true, yellowFlickerSeconds: 1 },
+    expectSecondImageDecodedAll: ["fill=\"#3c3518\""],
+  },
+  {
+    name: "red threshold can flicker at configured interval",
+    env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "critical-usage.json") },
+    settings: { displayMode: "warning-tile", redFlicker: true, redFlickerSeconds: 1, criticalThreshold: 1 },
+    expectSecondImageDecodedAll: ["fill=\"#3a2416\""],
+  },
+  {
+    name: "critical threshold can flicker at configured interval",
+    env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "critical-usage.json") },
+    settings: { displayMode: "ring", criticalFlicker: true, criticalFlickerSeconds: 1 },
+    expectSecondImageDecodedAll: ["fill=\"#3b1630\""],
   },
   {
     name: "mood and plan settings do not render",
@@ -168,6 +204,16 @@ async function runScenario(scenario) {
     for (const rejected of scenario.rejectDecodedAll || []) {
       if (decoded.includes(rejected)) {
         throw new Error(`${scenario.name}: expected decoded SVG not to include ${rejected}`);
+      }
+    }
+    if (scenario.expectSecondImageDecodedAll) {
+      const secondImageMessage = await waitFor(socket, (message) => message.event === "setImage");
+      const secondImage = secondImageMessage.payload?.image || "";
+      const secondDecoded = decodeURIComponent(secondImage.replace(/^data:image\/svg\+xml,/, ""));
+      for (const expected of scenario.expectSecondImageDecodedAll) {
+        if (!secondDecoded.includes(expected)) {
+          throw new Error(`${scenario.name}: expected second decoded SVG to include ${expected}`);
+        }
       }
     }
   } finally {

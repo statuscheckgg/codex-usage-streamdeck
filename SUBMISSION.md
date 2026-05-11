@@ -19,7 +19,7 @@ Users can configure visual mode, remaining/used percentage basis, single-icon ta
 
 The plugin includes clear status screens for first-run and error states, including Login Codex, Auth Expired, Network Retry, and API Changed.
 
-This plugin is unofficial and is not affiliated with OpenAI. It reads the local Codex auth file and sends authenticated usage requests only to OpenAI/ChatGPT. Tokens are not displayed, logged, stored by the plugin, or sent to the plugin author.
+This plugin is unofficial and is not affiliated with OpenAI. It reads the local Codex auth file to request usage from OpenAI/ChatGPT. Nothing is logged by the plugin, and usage checks do not consume Codex usage tokens.
 
 ## Short Description
 
@@ -36,7 +36,7 @@ Initial release with Codex 5-hour and weekly usage display, configurable visual 
 - Gallery: `marketplace-assets\gallery-dual-bars-green.png`
 - Gallery: `marketplace-assets\gallery-ring-warning.png`
 - Gallery: `marketplace-assets\gallery-property-inspector.png`
-- Gallery: `marketplace-assets\gallery-oh-no-critical.png`
+- Gallery: `marketplace-assets\gallery-critical-state.png`
 - Demo video for Elgato review email: `marketplace-assets\codex-usage-monitor-demo.mp4`
 
 ## Links

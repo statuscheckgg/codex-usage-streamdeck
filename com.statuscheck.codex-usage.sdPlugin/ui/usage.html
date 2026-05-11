@@ -64,6 +64,25 @@
       grid-template-columns: 1fr;
       gap: 4px;
     }
+    .flicker-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .flicker-row {
+      display: grid;
+      grid-template-columns: 80px 56px 1fr;
+      gap: 8px;
+      align-items: center;
+      min-height: 30px;
+    }
+    .flicker-row span {
+      font-weight: 700;
+    }
+    .flicker-row input[type="number"] {
+      width: 100%;
+    }
     button {
       width: 100%;
       border: 0;
@@ -91,7 +110,7 @@
 </head>
 <body>
   <div class="hint">
-    This unofficial monitor reads your local Codex auth file and requests usage from ChatGPT. Tokens are not displayed, logged, or sent anywhere except OpenAI.
+    This unofficial monitor reads your local Codex auth file and requests usage from ChatGPT. Nothing is logged by the plugin. Usage checks do not consume Codex usage tokens.
   </div>
 
   <h2>Display</h2>
@@ -117,6 +136,7 @@
       <option value="auto">Auto - lowest remaining</option>
       <option value="primary">5-hour</option>
       <option value="weekly">Weekly</option>
+      <option value="spark">Spark limit</option>
     </select>
   </label>
   <label>
@@ -138,9 +158,27 @@
       <input id="redThreshold" type="number" min="1" max="99">
     </label>
     <label>
-      Oh no at
+      Critical at
       <input id="criticalThreshold" type="number" min="1" max="99">
     </label>
+  </div>
+  <h2>Visual Flicker</h2>
+  <div class="flicker-grid">
+    <div class="flicker-row">
+      <span>Yellow</span>
+      <input id="yellowFlicker" type="checkbox" title="Enable yellow flicker">
+      <input id="yellowFlickerSeconds" type="number" min="1" max="30" step="1" title="Yellow flicker seconds">
+    </div>
+    <div class="flicker-row">
+      <span>Red</span>
+      <input id="redFlicker" type="checkbox" title="Enable red flicker">
+      <input id="redFlickerSeconds" type="number" min="1" max="30" step="1" title="Red flicker seconds">
+    </div>
+    <div class="flicker-row">
+      <span>Critical</span>
+      <input id="criticalFlicker" type="checkbox" title="Enable critical flicker">
+      <input id="criticalFlickerSeconds" type="number" min="1" max="30" step="1" title="Critical flicker seconds">
+    </div>
   </div>
 
   <h2>Advanced</h2>
@@ -148,13 +186,9 @@
     Auth path
     <input id="authPath" type="text" placeholder="Blank uses ~/.codex/auth.json">
   </label>
-  <label>
-    Spark limit
-    <input id="showSpark" type="checkbox">
-  </label>
   <button id="refreshNow" type="button">Refresh Now</button>
   <div class="footer">
-    Codex Usage Monitor <code>v0.1.0.0</code><br>
+    Codex Usage Monitor <code>v0.1.10.0</code><br>
     Support info: action <code>com.statuscheck.codex-usage.usage</code>
   </div>
 
@@ -171,8 +205,13 @@
       yellowThreshold: 50,
       redThreshold: 20,
       criticalThreshold: 10,
+      yellowFlicker: false,
+      yellowFlickerSeconds: 4,
+      redFlicker: false,
+      redFlickerSeconds: 2,
+      criticalFlicker: false,
+      criticalFlickerSeconds: 1,
       showReset: true,
-      showSpark: false,
       authPath: ""
     };
 

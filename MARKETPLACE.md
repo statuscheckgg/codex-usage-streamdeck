@@ -41,7 +41,7 @@ The plugin includes clear status screens for first-run and error states, includi
 
 Disclosure:
 
-`This plugin is unofficial and is not affiliated with OpenAI. It reads the local Codex auth file and sends authenticated usage requests only to OpenAI/ChatGPT. Tokens are not displayed, logged, or sent to the plugin author.`
+`This plugin is unofficial and is not affiliated with OpenAI. It reads the local Codex auth file to request usage from OpenAI/ChatGPT. Nothing is logged by the plugin, and usage checks do not consume Codex usage tokens.`
 
 Optional support note:
 
@@ -61,7 +61,7 @@ Generated local assets:
 - `marketplace-assets\gallery-dual-bars-green.png`
 - `marketplace-assets\gallery-ring-warning.png`
 - `marketplace-assets\gallery-property-inspector.png`
-- `marketplace-assets\gallery-oh-no-critical.png`
+- `marketplace-assets\gallery-critical-state.png`
 - `marketplace-assets\codex-usage-monitor-demo.mp4`
 
 Public links:
@@ -75,7 +75,7 @@ Public links:
 
 - Dual bars normal green state
 - Ring gauge warning state
-- Warning and "Oh No" red state
+- Warning and critical red state
 - Property inspector settings
 
 ## First Release Notes

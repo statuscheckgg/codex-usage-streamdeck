@@ -1,0 +1,46 @@
+{
+  "plan_type": "prolite",
+  "rate_limit": {
+    "allowed": true,
+    "limit_reached": false,
+    "primary_window": {
+      "used_percent": 18,
+      "limit_window_seconds": 18000,
+      "reset_after_seconds": 14400,
+      "reset_at": 1778150000
+    },
+    "secondary_window": {
+      "used_percent": 11,
+      "limit_window_seconds": 604800,
+      "reset_after_seconds": 416000,
+      "reset_at": 1778551284
+    }
+  },
+  "additional_rate_limits": [
+    {
+      "limit_name": "spark",
+      "rate_limit": {
+        "allowed": true,
+        "limit_reached": false,
+        "primary_window": {
+          "used_percent": 38,
+          "limit_window_seconds": 18000,
+          "reset_after_seconds": 7200,
+          "reset_at": 1778142800
+        },
+        "secondary_window": {
+          "used_percent": 25,
+          "limit_window_seconds": 604800,
+          "reset_after_seconds": 360000,
+          "reset_at": 1778495284
+        }
+      }
+    }
+  ],
+  "credits": {
+    "has_credits": false,
+    "unlimited": false,
+    "overage_limit_reached": false,
+    "balance": "0"
+  }
+}

@@ -9,7 +9,7 @@ import streamDeck, { SingletonAction } from "@elgato/streamdeck";
 const PLUGIN_UUID = "com.statuscheck.codex-usage";
 const ACTION_UUID = "com.statuscheck.codex-usage.usage";
 const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
-const PLUGIN_VERSION = "0.1.7.0";
+const PLUGIN_VERSION = "0.1.10.0";
 
 const actions = new Map();
 
@@ -26,19 +26,19 @@ class CodexUsageAction extends SingletonAction {
       context,
       sdkAction: ev.action,
       settings,
-      timer: null,
+      refreshTimer: null,
+      flickerTimer: null,
+      flickerOn: false,
       lastUsage: null,
       lastError: null,
     });
-    schedule(context);
+    scheduleRefresh(context);
     await refreshAction(context, { force: true });
   }
 
   onWillDisappear(ev) {
     const action = actions.get(ev.action.id);
-    if (action?.timer) {
-      clearInterval(action.timer);
-    }
+    clearActionTimers(action);
     actions.delete(ev.action.id);
   }
 
@@ -52,14 +52,16 @@ class CodexUsageAction extends SingletonAction {
     const action = actions.get(context) || {
       context,
       sdkAction: ev.action,
-      timer: null,
+      refreshTimer: null,
+      flickerTimer: null,
+      flickerOn: false,
       lastUsage: null,
       lastError: null,
     };
     action.sdkAction = ev.action;
     action.settings = settings;
     actions.set(context, action);
-    schedule(context);
+    scheduleRefresh(context);
     await refreshAction(context, { force: true });
   }
 
@@ -86,21 +88,73 @@ async function main() {
   }
 }
 
-function schedule(context) {
+function scheduleRefresh(context) {
   const action = actions.get(context);
   if (!action) {
     return;
   }
 
-  if (action.timer) {
-    clearInterval(action.timer);
-    action.timer = null;
+  if (action.refreshTimer) {
+    clearInterval(action.refreshTimer);
+    action.refreshTimer = null;
   }
 
   const refreshMs = Math.max(15, action.settings.refreshSeconds) * 1000;
-  action.timer = setInterval(() => {
+  action.refreshTimer = setInterval(() => {
     refreshAction(context, { force: true }).catch(() => {});
   }, refreshMs);
+}
+
+function clearActionTimers(action) {
+  if (!action) {
+    return;
+  }
+  if (action.refreshTimer) {
+    clearInterval(action.refreshTimer);
+    action.refreshTimer = null;
+  }
+  if (action.flickerTimer) {
+    clearInterval(action.flickerTimer);
+    action.flickerTimer = null;
+  }
+}
+
+function stopFlicker(action) {
+  if (!action) {
+    return;
+  }
+  if (action.flickerTimer) {
+    clearInterval(action.flickerTimer);
+    action.flickerTimer = null;
+  }
+  action.flickerOn = false;
+}
+
+function scheduleFlicker(context) {
+  const action = actions.get(context);
+  if (!action?.lastUsage || action.lastError) {
+    stopFlicker(action);
+    return;
+  }
+
+  stopFlicker(action);
+  const snapshot = makeSnapshot(action.lastUsage, action.settings);
+  const level = activeDisplayLevel(snapshot, action.settings);
+  const config = flickerConfig(action.settings, level);
+  if (!config?.enabled) {
+    return;
+  }
+
+  const intervalMs = clampNumber(config.seconds, 2, 1, 30) * 1000;
+  action.flickerTimer = setInterval(() => {
+    const current = actions.get(context);
+    if (!current?.lastUsage || current.lastError) {
+      stopFlicker(current);
+      return;
+    }
+    current.flickerOn = !current.flickerOn;
+    renderAction(current, current.lastUsage).catch(() => {});
+  }, intervalMs);
 }
 
 async function refreshAction(context, options = {}) {
@@ -113,12 +167,16 @@ async function refreshAction(context, options = {}) {
     const usage = await fetchCodexUsage(action.settings);
     action.lastUsage = usage;
     action.lastError = null;
+    action.flickerOn = false;
     await renderAction(action, usage);
+    scheduleFlicker(context);
     if (options.feedback) {
       await action.sdkAction.showOk();
     }
   } catch (error) {
     action.lastError = error;
+    action.lastUsage = null;
+    stopFlicker(action);
     await renderError(action, error);
     if (options.feedback) {
       await action.sdkAction.showAlert();
@@ -133,8 +191,13 @@ function defaultSettings() {
     yellowThreshold: 50,
     redThreshold: 20,
     criticalThreshold: 10,
+    yellowFlicker: false,
+    yellowFlickerSeconds: 4,
+    redFlicker: false,
+    redFlickerSeconds: 2,
+    criticalFlicker: false,
+    criticalFlickerSeconds: 1,
     showReset: true,
-    showSpark: false,
     authPath: "",
     basis: "remaining",
     singleWindow: "auto",
@@ -150,11 +213,16 @@ function normalizeSettings(raw = {}) {
     yellowThreshold: clampNumber(raw.yellowThreshold, defaults.yellowThreshold, 1, 99),
     redThreshold: clampNumber(raw.redThreshold, defaults.redThreshold, 1, 99),
     criticalThreshold: clampNumber(raw.criticalThreshold, defaults.criticalThreshold, 1, 99),
+    yellowFlicker: toBool(raw.yellowFlicker, defaults.yellowFlicker),
+    yellowFlickerSeconds: clampNumber(raw.yellowFlickerSeconds, defaults.yellowFlickerSeconds, 1, 30),
+    redFlicker: toBool(raw.redFlicker, defaults.redFlicker),
+    redFlickerSeconds: clampNumber(raw.redFlickerSeconds, defaults.redFlickerSeconds, 1, 30),
+    criticalFlicker: toBool(raw.criticalFlicker, defaults.criticalFlicker),
+    criticalFlickerSeconds: clampNumber(raw.criticalFlickerSeconds, defaults.criticalFlickerSeconds, 1, 30),
     showReset: toBool(raw.showReset, defaults.showReset),
-    showSpark: toBool(raw.showSpark, defaults.showSpark),
     authPath: typeof raw.authPath === "string" ? raw.authPath.trim() : defaults.authPath,
     basis: pick(raw.basis, defaults.basis),
-    singleWindow: normalizeSingleWindow(raw.singleWindow, legacyDisplayMode, defaults.singleWindow),
+    singleWindow: normalizeSingleWindow(raw.singleWindow, legacyDisplayMode, defaults.singleWindow, raw.showSpark),
   };
 }
 
@@ -172,9 +240,12 @@ function normalizeDisplayMode(value) {
   return "dual-bars";
 }
 
-function normalizeSingleWindow(value, displayMode, fallback) {
-  if (value === "primary" || value === "weekly" || value === "auto") {
+function normalizeSingleWindow(value, displayMode, fallback, legacyShowSpark = false) {
+  if (value === "primary" || value === "weekly" || value === "auto" || value === "spark") {
     return value;
+  }
+  if (toBool(legacyShowSpark, false)) {
+    return "spark";
   }
   if (displayMode === "weekly-tile") {
     return "weekly";
@@ -285,7 +356,7 @@ function readCodexAuth(authPathOverride) {
 
 async function renderAction(action, payload) {
   const snapshot = makeSnapshot(payload, action.settings);
-  const svg = renderUsageSvg(snapshot, action.settings);
+  const svg = renderUsageSvg(snapshot, action.settings, { flickerOn: action.flickerOn });
   await action.sdkAction.setImage(`data:image/svg+xml,${encodeURIComponent(svg)}`, { target: 0 });
   await action.sdkAction.setTitle("");
 }
@@ -348,17 +419,17 @@ function getLevel(remaining, settings) {
   return "green";
 }
 
-function renderUsageSvg(snapshot, settings) {
+function renderUsageSvg(snapshot, settings, state = {}) {
   switch (settings.displayMode) {
     case "ring":
-      return renderRing(snapshot, settings);
+      return renderRing(snapshot, settings, state);
     case "warning-tile":
-      return renderWarningTile(snapshot, settings);
+      return renderWarningTile(snapshot, settings, state);
     case "split":
-      return renderSplit(snapshot, settings);
+      return renderSplit(snapshot, settings, state);
     case "dual-bars":
     default:
-      return renderDualBars(snapshot, settings);
+      return renderDualBars(snapshot, settings, state);
   }
 }
 
@@ -372,6 +443,7 @@ function palette(level) {
       text: "#fff8fb",
       muted: "#a99aa9",
       track: "#34303f",
+      flash: "#3b1630",
     };
   }
   if (level === "red") {
@@ -383,6 +455,7 @@ function palette(level) {
       text: "#fffaf1",
       muted: "#aea0a4",
       track: "#34303f",
+      flash: "#3a2416",
     };
   }
   if (level === "yellow") {
@@ -394,6 +467,7 @@ function palette(level) {
       text: "#fffbe5",
       muted: "#a9a692",
       track: "#333640",
+      flash: "#3c3518",
     };
   }
   return {
@@ -404,10 +478,12 @@ function palette(level) {
     text: "#f6fff8",
     muted: "#9ba9a9",
     track: "#263241",
+    flash: "#16352d",
   };
 }
 
-function base(p) {
+function base(p, state = {}) {
+  const panelFill = state.flickerOn ? p.flash : p.panel;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
   <defs>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -415,14 +491,14 @@ function base(p) {
     </filter>
   </defs>
   <rect width="144" height="144" rx="28" fill="${p.bg}"/>
-  <rect x="10" y="10" width="124" height="124" rx="23" fill="${p.panel}" filter="url(#shadow)"/>`;
+  <rect x="10" y="10" width="124" height="124" rx="23" fill="${panelFill}" filter="url(#shadow)"/>`;
 }
 
 function end() {
   return "</svg>";
 }
 
-function renderDualBars(snapshot, settings) {
+function renderDualBars(snapshot, settings, state = {}) {
   const p = palette(snapshot.level);
   const primaryPalette = palette(getLevel(snapshot.primary.remainingPercent, settings));
   const weeklyPalette = palette(getLevel(snapshot.weekly.remainingPercent, settings));
@@ -430,7 +506,7 @@ function renderDualBars(snapshot, settings) {
   const weekly = valueFor(snapshot.weekly, settings);
   const primaryWidth = Math.max(4, primary * 0.83);
   const weeklyWidth = Math.max(4, weekly * 0.83);
-  return `${base(p)}
+  return `${base(p, state)}
   <text x="23" y="45" fill="${p.text}" font-size="26" font-family="Arial, sans-serif" font-weight="800">${primary}%</text>
   <text x="110" y="33" fill="${primaryPalette.accent}" font-size="17" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">5H</text>
   <text x="110" y="53" fill="${p.text}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(snapshot.primary.resetText) : " "}</text>
@@ -441,33 +517,31 @@ function renderDualBars(snapshot, settings) {
   <text x="110" y="111" fill="${p.text}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(snapshot.weekly.resetText) : " "}</text>
   <line x1="24" y1="123" x2="107" y2="123" stroke="${p.track}" stroke-width="6" stroke-linecap="round"/>
   <line x1="24" y1="123" x2="${24 + weeklyWidth}" y2="123" stroke="${weeklyPalette.accent}" stroke-width="6" stroke-linecap="round"/>
-  ${settings.showSpark ? sparkLabel(snapshot, p, settings) : ""}
 ${end()}`;
 }
 
-function renderRing(snapshot, settings) {
+function renderRing(snapshot, settings, state = {}) {
   const active = selectSingleWindow(snapshot, settings, "lowest");
   const level = getLevel(active.remainingPercent, settings);
   const p = palette(level);
   const value = valueFor(active, settings);
   const arc = ringArc(72, 68, 43, Math.max(0.01, value / 100));
-  return `${base(p)}
+  return `${base(p, state)}
   <circle cx="72" cy="68" r="43" fill="none" stroke="${p.track}" stroke-width="10" stroke-linecap="round"/>
   <path d="${arc}" fill="none" stroke="${p.accent}" stroke-width="10" stroke-linecap="round"/>
   <text x="72" y="67" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${value}%</text>
   <text x="72" y="85" fill="${p.text}" font-size="14" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${active.label}</text>
   <text x="72" y="113" fill="${p.text}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings.showReset ? esc(active.resetText) : ""}</text>
-  ${settings.showSpark ? sparkLabel(snapshot, p, settings) : ""}
 ${end()}`;
 }
 
-function renderWarningTile(snapshot, settings) {
+function renderWarningTile(snapshot, settings, state = {}) {
   const active = selectSingleWindow(snapshot, settings, "lowest");
   const level = getLevel(active.remainingPercent, settings);
   const p = palette(level);
   const value = valueFor(active, settings);
   const label = active.label;
-  return `${base(p)}
+  return `${base(p, state)}
   <text x="72" y="40" fill="${p.accent}" font-size="18" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${esc(label)}</text>
   <text x="72" y="87" fill="${p.text}" font-size="47" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${value}%</text>
   <line x1="38" y1="104" x2="106" y2="104" stroke="${p.track}" stroke-width="9" stroke-linecap="round"/>
@@ -476,22 +550,23 @@ function renderWarningTile(snapshot, settings) {
 ${end()}`;
 }
 
-function renderSplit(snapshot, settings) {
+function renderSplit(snapshot, settings, state = {}) {
   const p = palette(snapshot.level);
   const primaryPalette = palette(getLevel(snapshot.primary.remainingPercent, settings));
   const weeklyPalette = palette(getLevel(snapshot.weekly.remainingPercent, settings));
   const p1 = valueFor(snapshot.primary, settings);
   const w1 = valueFor(snapshot.weekly, settings);
+  const panelFill = state.flickerOn ? p.flash : p.panel;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
   <rect width="144" height="144" rx="28" fill="${p.bg}"/>
-  <rect x="10" y="10" width="124" height="59" rx="21" fill="${p.panel}"/>
-  <rect x="10" y="75" width="124" height="59" rx="21" fill="${p.panel}"/>
+  <rect x="10" y="10" width="124" height="59" rx="21" fill="${panelFill}"/>
+  <rect x="10" y="75" width="124" height="59" rx="21" fill="${panelFill}"/>
   <text x="24" y="35" fill="${primaryPalette.accent}" font-size="16" font-family="Arial, sans-serif" font-weight="900">5H</text>
   <text x="24" y="59" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="900">${p1}%</text>
-  <text x="105" y="56" fill="${p.muted}" font-size="15" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${settings.showReset ? esc(snapshot.primary.resetText) : ""}</text>
+  <text x="122" y="56" fill="#ffffff" font-size="18" font-family="Arial, sans-serif" font-weight="900" text-anchor="end">${settings.showReset ? esc(snapshot.primary.resetText) : ""}</text>
   <text x="24" y="100" fill="${weeklyPalette.accent}" font-size="16" font-family="Arial, sans-serif" font-weight="900">WK</text>
   <text x="24" y="124" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="900">${w1}%</text>
-  <text x="105" y="121" fill="${p.muted}" font-size="15" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${settings.showReset ? esc(snapshot.weekly.resetText) : ""}</text>
+  <text x="122" y="121" fill="#ffffff" font-size="18" font-family="Arial, sans-serif" font-weight="900" text-anchor="end">${settings.showReset ? esc(snapshot.weekly.resetText) : ""}</text>
 ${end()}`;
 }
 
@@ -564,14 +639,6 @@ function errorState(error) {
   };
 }
 
-function sparkLabel(snapshot, p, settings) {
-  if (!snapshot.spark) {
-    return "";
-  }
-  const value = valueFor(snapshot.spark.primary, settings);
-  return `<text x="72" y="133" fill="${p.muted}" font-size="9" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">SP ${value}%</text>`;
-}
-
 function selectSingleWindow(snapshot, settings, fallback) {
   if (settings.singleWindow === "primary") {
     return snapshot.primary;
@@ -579,7 +646,25 @@ function selectSingleWindow(snapshot, settings, fallback) {
   if (settings.singleWindow === "weekly") {
     return snapshot.weekly;
   }
+  if (settings.singleWindow === "spark" && snapshot.spark?.primary) {
+    return snapshot.spark.primary;
+  }
   return fallback === "weekly" ? snapshot.weekly : snapshot.lowest;
+}
+
+function activeDisplayLevel(snapshot, settings) {
+  if (settings.displayMode === "ring" || settings.displayMode === "warning-tile") {
+    return getLevel(selectSingleWindow(snapshot, settings, "lowest").remainingPercent, settings);
+  }
+  return snapshot.level;
+}
+
+function flickerConfig(settings, level) {
+  return {
+    yellow: { enabled: settings.yellowFlicker, seconds: settings.yellowFlickerSeconds },
+    red: { enabled: settings.redFlicker, seconds: settings.redFlickerSeconds },
+    critical: { enabled: settings.criticalFlicker, seconds: settings.criticalFlickerSeconds },
+  }[level];
 }
 
 function valueFor(window, settings) {
