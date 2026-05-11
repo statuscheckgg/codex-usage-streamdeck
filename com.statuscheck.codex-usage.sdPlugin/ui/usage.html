@@ -112,9 +112,9 @@
     </select>
   </label>
   <label>
-    Single display
+    Single icon shows
     <select id="singleWindow">
-      <option value="auto">Auto</option>
+      <option value="auto">Auto - lowest remaining</option>
       <option value="primary">5-hour</option>
       <option value="weekly">Weekly</option>
     </select>
@@ -127,11 +127,6 @@
     Show reset time
     <input id="showReset" type="checkbox">
   </label>
-  <label>
-    Show plan label
-    <input id="showPlan" type="checkbox">
-  </label>
-
   <h2>Thresholds</h2>
   <div class="row">
     <label>
@@ -145,30 +140,6 @@
     <label>
       Oh no at
       <input id="criticalThreshold" type="number" min="1" max="99">
-    </label>
-  </div>
-
-  <h2>Mood</h2>
-  <label>
-    Mood icons
-    <input id="moodEnabled" type="checkbox">
-  </label>
-  <label>
-    Pulse low state
-    <input id="pulseEnabled" type="checkbox">
-  </label>
-  <div class="row">
-    <label>
-      Green minutes
-      <input id="greenMoodMinutes" type="number" min="1" max="240">
-    </label>
-    <label>
-      Yellow minutes
-      <input id="yellowMoodMinutes" type="number" min="1" max="120">
-    </label>
-    <label>
-      Red minutes
-      <input id="redMoodMinutes" type="number" min="1" max="60">
     </label>
   </div>
 
@@ -200,13 +171,7 @@
       yellowThreshold: 50,
       redThreshold: 20,
       criticalThreshold: 10,
-      moodEnabled: true,
-      pulseEnabled: true,
-      greenMoodMinutes: 15,
-      yellowMoodMinutes: 5,
-      redMoodMinutes: 1,
       showReset: true,
-      showPlan: false,
       showSpark: false,
       authPath: ""
     };

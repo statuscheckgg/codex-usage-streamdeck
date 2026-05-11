@@ -8,7 +8,7 @@ The plugin displays Codex usage from the local Codex login:
 - Weekly usage window
 - Reset countdowns
 - Optional extra model-specific limits such as Spark
-- Configurable visual modes, thresholds, and mood indicators
+- Configurable visual modes, thresholds, and reset labels
 
 ## User Experience
 
@@ -32,7 +32,7 @@ Download the latest `.streamDeckPlugin` file from the GitHub releases page, then
 - Warning tile
 - Split key
 
-The Property Inspector also includes refresh interval, threshold, reset-label, Spark-limit, and mood-indicator controls.
+The Property Inspector also includes refresh interval, single-icon target, threshold, reset-label, and Spark-limit controls.
 
 ## Security Model
 

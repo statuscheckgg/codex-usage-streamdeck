@@ -17195,7 +17195,7 @@ var plugin_default = streamDeck;
 // src/plugin.mjs
 var ACTION_UUID = "com.statuscheck.codex-usage.usage";
 var USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
-var PLUGIN_VERSION = "0.1.6.0";
+var PLUGIN_VERSION = "0.1.7.0";
 var actions = /* @__PURE__ */ new Map();
 var CodexUsageAction = class extends SingletonAction {
   constructor() {
@@ -17304,13 +17304,7 @@ function defaultSettings() {
     yellowThreshold: 50,
     redThreshold: 20,
     criticalThreshold: 10,
-    moodEnabled: true,
-    greenMoodMinutes: 15,
-    yellowMoodMinutes: 5,
-    redMoodMinutes: 1,
-    pulseEnabled: true,
     showReset: true,
-    showPlan: false,
     showSpark: false,
     authPath: "",
     basis: "remaining",
@@ -17326,13 +17320,7 @@ function normalizeSettings(raw = {}) {
     yellowThreshold: clampNumber(raw.yellowThreshold, defaults.yellowThreshold, 1, 99),
     redThreshold: clampNumber(raw.redThreshold, defaults.redThreshold, 1, 99),
     criticalThreshold: clampNumber(raw.criticalThreshold, defaults.criticalThreshold, 1, 99),
-    moodEnabled: toBool(raw.moodEnabled, defaults.moodEnabled),
-    greenMoodMinutes: clampNumber(raw.greenMoodMinutes, defaults.greenMoodMinutes, 1, 240),
-    yellowMoodMinutes: clampNumber(raw.yellowMoodMinutes, defaults.yellowMoodMinutes, 1, 120),
-    redMoodMinutes: clampNumber(raw.redMoodMinutes, defaults.redMoodMinutes, 1, 60),
-    pulseEnabled: toBool(raw.pulseEnabled, defaults.pulseEnabled),
     showReset: toBool(raw.showReset, defaults.showReset),
-    showPlan: toBool(raw.showPlan, defaults.showPlan),
     showSpark: toBool(raw.showSpark, defaults.showSpark),
     authPath: typeof raw.authPath === "string" ? raw.authPath.trim() : defaults.authPath,
     basis: pick3(raw.basis, defaults.basis),
@@ -17465,7 +17453,6 @@ function makeSnapshot(payload, settings2) {
   const weekly = makeWindow("WK", payload.rate_limit?.secondary_window, payload.rate_limit);
   const lowest = primary.remainingPercent <= weekly.remainingPercent ? primary : weekly;
   const level = getLevel(lowest.remainingPercent, settings2);
-  const mood = getMood(level, settings2);
   const rawSpark = (payload.additional_rate_limits || []).find((limit) => limit.limit_name || limit.metered_feature);
   const spark = rawSpark ? {
     name: rawSpark.limit_name || rawSpark.metered_feature || "Extra",
@@ -17478,7 +17465,6 @@ function makeSnapshot(payload, settings2) {
     weekly,
     lowest,
     level,
-    mood,
     spark,
     credits: payload.credits || null,
     allowed: payload.rate_limit?.allowed !== false,
@@ -17510,39 +17496,6 @@ function getLevel(remaining, settings2) {
   }
   return "green";
 }
-function getMood(level, settings2) {
-  if (!settings2.moodEnabled) {
-    return null;
-  }
-  const moodSets = {
-    green: [
-      { text: "OK", face: "smile" },
-      { text: "SAFE", face: "check" },
-      { text: "GOOD", face: "spark" }
-    ],
-    yellow: [
-      { text: "WATCH", face: "flat" },
-      { text: "LOW", face: "warn" },
-      { text: "EASY", face: "flat" }
-    ],
-    red: [
-      { text: "OH NO", face: "sad" },
-      { text: "LOW", face: "warn" },
-      { text: "WAIT", face: "sad" }
-    ],
-    critical: [
-      { text: "OH NO", face: "sad" },
-      { text: "LIMIT", face: "warn" }
-    ]
-  };
-  const minutes = level === "green" ? settings2.greenMoodMinutes : level === "yellow" ? settings2.yellowMoodMinutes : settings2.redMoodMinutes;
-  const set2 = moodSets[level] || moodSets.green;
-  const cycle = Math.floor(Date.now() / (minutes * 60 * 1e3));
-  return {
-    ...set2[cycle % set2.length],
-    pulse: settings2.pulseEnabled && (level === "red" || level === "critical") && cycle % 2 === 1
-  };
-}
 function renderUsageSvg(snapshot, settings2) {
   switch (settings2.displayMode) {
     case "ring":
@@ -17556,10 +17509,10 @@ function renderUsageSvg(snapshot, settings2) {
       return renderDualBars(snapshot, settings2);
   }
 }
-function palette(level, pulse = false) {
+function palette(level) {
   if (level === "critical") {
     return {
-      bg: pulse ? "#2a0811" : "#15121d",
+      bg: "#15121d",
       panel: "#1d1421",
       accent: "#ff335d",
       soft: "#ffb1c0",
@@ -17570,7 +17523,7 @@ function palette(level, pulse = false) {
   }
   if (level === "red") {
     return {
-      bg: pulse ? "#2a1508" : "#15121d",
+      bg: "#15121d",
       panel: "#1b1624",
       accent: "#ffb020",
       soft: "#ffd28a",
@@ -17614,7 +17567,7 @@ function end() {
   return "</svg>";
 }
 function renderDualBars(snapshot, settings2) {
-  const p = palette(snapshot.level, snapshot.mood?.pulse);
+  const p = palette(snapshot.level);
   const primaryPalette = palette(getLevel(snapshot.primary.remainingPercent, settings2));
   const weeklyPalette = palette(getLevel(snapshot.weekly.remainingPercent, settings2));
   const primary = valueFor(snapshot.primary, settings2);
@@ -17632,16 +17585,13 @@ function renderDualBars(snapshot, settings2) {
   <text x="110" y="111" fill="${p.text}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings2.showReset ? esc2(snapshot.weekly.resetText) : " "}</text>
   <line x1="24" y1="123" x2="107" y2="123" stroke="${p.track}" stroke-width="6" stroke-linecap="round"/>
   <line x1="24" y1="123" x2="${24 + weeklyWidth}" y2="123" stroke="${weeklyPalette.accent}" stroke-width="6" stroke-linecap="round"/>
-  ${renderMood(snapshot, p, 0)}
   ${settings2.showSpark ? sparkLabel(snapshot, p, settings2) : ""}
-  ${settings2.showPlan ? planLabel(snapshot.planType, p) : ""}
 ${end()}`;
 }
 function renderRing(snapshot, settings2) {
   const active = selectSingleWindow(snapshot, settings2, "lowest");
   const level = getLevel(active.remainingPercent, settings2);
-  const mood = getMood(level, settings2);
-  const p = palette(level, mood?.pulse);
+  const p = palette(level);
   const value = valueFor(active, settings2);
   const arc = ringArc(72, 68, 43, Math.max(0.01, value / 100));
   return `${base(p)}
@@ -17650,18 +17600,15 @@ function renderRing(snapshot, settings2) {
   <text x="72" y="67" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${value}%</text>
   <text x="72" y="85" fill="${p.text}" font-size="14" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${active.label}</text>
   <text x="72" y="113" fill="${p.text}" font-size="15" font-family="Arial, sans-serif" font-weight="800" text-anchor="middle">${settings2.showReset ? esc2(active.resetText) : ""}</text>
-  ${renderMood({ ...snapshot, level, mood }, p, 1)}
   ${settings2.showSpark ? sparkLabel(snapshot, p, settings2) : ""}
-  ${settings2.showPlan ? planLabel(snapshot.planType, p) : ""}
 ${end()}`;
 }
 function renderWarningTile(snapshot, settings2) {
   const active = selectSingleWindow(snapshot, settings2, "lowest");
   const level = getLevel(active.remainingPercent, settings2);
-  const mood = getMood(level, settings2);
-  const p = palette(level, mood?.pulse);
+  const p = palette(level);
   const value = valueFor(active, settings2);
-  const label = level === "green" ? active.label : mood?.text || active.label;
+  const label = active.label;
   return `${base(p)}
   <text x="72" y="40" fill="${p.accent}" font-size="18" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${esc2(label)}</text>
   <text x="72" y="87" fill="${p.text}" font-size="47" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${value}%</text>
@@ -17671,7 +17618,7 @@ function renderWarningTile(snapshot, settings2) {
 ${end()}`;
 }
 function renderSplit(snapshot, settings2) {
-  const p = palette(snapshot.level, snapshot.mood?.pulse);
+  const p = palette(snapshot.level);
   const primaryPalette = palette(getLevel(snapshot.primary.remainingPercent, settings2));
   const weeklyPalette = palette(getLevel(snapshot.weekly.remainingPercent, settings2));
   const p1 = valueFor(snapshot.primary, settings2);
@@ -17686,7 +17633,6 @@ function renderSplit(snapshot, settings2) {
   <text x="24" y="100" fill="${weeklyPalette.accent}" font-size="16" font-family="Arial, sans-serif" font-weight="900">WK</text>
   <text x="24" y="124" fill="${p.text}" font-size="28" font-family="Arial, sans-serif" font-weight="900">${w1}%</text>
   <text x="105" y="121" fill="${p.muted}" font-size="15" font-family="Arial, sans-serif" font-weight="900" text-anchor="middle">${settings2.showReset ? esc2(snapshot.weekly.resetText) : ""}</text>
-  ${renderMood(snapshot, p, 0)}
 ${end()}`;
 }
 function renderErrorSvg(error40) {
@@ -17755,38 +17701,6 @@ function errorState(error40) {
     size: "24",
     icon: `<path d="M72 31v24" stroke="#ffb020" stroke-width="8" stroke-linecap="round"/><circle cx="72" cy="66" r="4" fill="#ffb020"/>`
   };
-}
-function renderMood(snapshot, p, position) {
-  if (!snapshot.mood) {
-    return "";
-  }
-  const x = position === 1 ? 111 : position === 2 ? 111 : 112;
-  const y = position === 1 ? 26 : position === 2 ? 27 : 27;
-  return `<g>
-    <circle cx="${x}" cy="${y}" r="13" fill="${p.bg}" stroke="${p.accent}" stroke-width="2"/>
-    ${facePath(snapshot.mood.face, x, y, p.accent)}
-  </g>`;
-}
-function facePath(face, x, y, color) {
-  if (face === "check") {
-    return `<path d="M${x - 7} ${y}l4 4 8-9" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
-  }
-  if (face === "warn") {
-    return `<path d="M${x} ${y - 8}v10" stroke="${color}" stroke-width="3" stroke-linecap="round"/><circle cx="${x}" cy="${y + 6}" r="1.8" fill="${color}"/>`;
-  }
-  if (face === "sad") {
-    return `<circle cx="${x - 4}" cy="${y - 3}" r="1.7" fill="${color}"/><circle cx="${x + 4}" cy="${y - 3}" r="1.7" fill="${color}"/><path d="M${x - 6} ${y + 7}q6-6 12 0" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/>`;
-  }
-  if (face === "flat") {
-    return `<circle cx="${x - 4}" cy="${y - 3}" r="1.7" fill="${color}"/><circle cx="${x + 4}" cy="${y - 3}" r="1.7" fill="${color}"/><path d="M${x - 6} ${y + 6}h12" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/>`;
-  }
-  if (face === "spark") {
-    return `<path d="M${x} ${y - 9}l2.5 6 6 2.5-6 2.5-2.5 6-2.5-6-6-2.5 6-2.5z" fill="${color}"/>`;
-  }
-  return `<circle cx="${x - 4}" cy="${y - 3}" r="1.7" fill="${color}"/><circle cx="${x + 4}" cy="${y - 3}" r="1.7" fill="${color}"/><path d="M${x - 6} ${y + 4}q6 6 12 0" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/>`;
-}
-function planLabel(planType, p) {
-  return `<text x="72" y="23" fill="${p.muted}" font-size="9" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">${esc2(String(planType).toUpperCase())}</text>`;
 }
 function sparkLabel(snapshot, p, settings2) {
   if (!snapshot.spark) {

@@ -16,7 +16,7 @@ Codex Usage Monitor is an unofficial local Stream Deck plugin that shows current
 
 The key refreshes automatically at a configurable interval and can also be refreshed manually by pressing the key. Display modes include dual bars for both quota windows, a ring gauge, a warning tile, and a split-key view. Single-window modes can show the lowest remaining window automatically or be locked to the 5-hour or weekly window.
 
-Users can configure visual mode, remaining/used percentage basis, refresh timing, threshold colors, reset countdown labels, optional Spark/model-specific limit display, and optional mood indicators. Mood indicators and pulse behavior can be turned off, or left enabled so the key changes status more frequently as remaining usage gets low.
+Users can configure visual mode, remaining/used percentage basis, single-icon target, refresh timing, threshold colors, reset countdown labels, and optional Spark/model-specific limit display.
 
 The plugin includes clear status screens for first-run and error states, including Login Codex, Auth Expired, Network Retry, and API Changed.
 

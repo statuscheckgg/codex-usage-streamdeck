@@ -67,7 +67,13 @@ const scenarios = [
     name: "warning tile can show primary",
     env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "mixed-usage.json") },
     settings: { displayMode: "warning-tile", singleWindow: "primary" },
-    expectDecoded: "46%",
+    expectDecodedAll: ["46%", "5H"],
+  },
+  {
+    name: "mood and plan settings do not render",
+    env: { CODEX_USAGE_MOCK_PAYLOAD: path.join(root, "test-fixtures", "critical-usage.json") },
+    settings: { displayMode: "ring", singleWindow: "primary", moodEnabled: true, showPlan: true },
+    rejectDecodedAll: ["OH NO", "PRO"],
   },
   {
     name: "legacy weekly tile maps to weekly ring",
@@ -157,6 +163,11 @@ async function runScenario(scenario) {
     for (const expected of scenario.expectDecodedAll || []) {
       if (!decoded.includes(expected)) {
         throw new Error(`${scenario.name}: expected decoded SVG to include ${expected}`);
+      }
+    }
+    for (const rejected of scenario.rejectDecodedAll || []) {
+      if (decoded.includes(rejected)) {
+        throw new Error(`${scenario.name}: expected decoded SVG not to include ${rejected}`);
       }
     }
   } finally {

@@ -8,7 +8,7 @@ Built plugin installer:
 
 Public release:
 
-`https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.6`
+`https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.7`
 
 ## Current Status
 
@@ -35,7 +35,7 @@ Description:
 
 The key refreshes automatically at a configurable interval and can also be refreshed manually by pressing the key. Display modes include dual bars for both quota windows, a ring gauge, a warning tile, and a split-key view. Single-window modes can show the lowest remaining window automatically or be locked to the 5-hour or weekly window.
 
-Users can configure visual mode, remaining/used percentage basis, refresh timing, threshold colors, reset countdown labels, optional Spark/model-specific limit display, and optional mood indicators. Mood indicators and pulse behavior can be turned off, or left enabled so the key changes status more frequently as remaining usage gets low.
+Users can configure visual mode, remaining/used percentage basis, single-icon target, refresh timing, threshold colors, reset countdown labels, and optional Spark/model-specific limit display.
 
 The plugin includes clear status screens for first-run and error states, including Login Codex, Auth Expired, Network Retry, and API Changed.`
 
@@ -80,7 +80,7 @@ Public links:
 
 ## First Release Notes
 
-`Initial release with Codex 5-hour and weekly usage display, configurable visual modes, thresholds, reset countdowns, local Codex auth detection, optional Spark limit display, and adjustable mood indicators.`
+`Initial release with Codex 5-hour and weekly usage display, configurable visual modes, single-icon targeting, thresholds, reset countdowns, local Codex auth detection, and optional Spark limit display.`
 
 ## Review Risks
 
@@ -92,6 +92,6 @@ Public links:
 ## Submission Status
 
 - GitHub repo published.
-- v0.1.6 release created with the `.streamDeckPlugin` installer attached.
+- v0.1.7 release created with the `.streamDeckPlugin` installer attached.
 - Elgato `streamdeck validate` passes after public URL resolution.
 - Rejection response materials are prepared in `ELGATO_REVIEW_RESPONSE.md`, including expanded description copy, revised non-overlapping media, and demo video path.

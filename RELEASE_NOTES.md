@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.1.7.0
+
+- Makes the single-icon display selector explicit: auto lowest remaining, 5-hour, or weekly.
+- Removes mood icon rendering and plan-label rendering from Stream Deck keys.
+
 ## 0.1.6.0
 
 - Increases quota-window labels and reset countdown text size for better readability on hardware keys.

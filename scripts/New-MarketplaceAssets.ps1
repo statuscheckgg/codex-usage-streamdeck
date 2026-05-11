@@ -164,17 +164,17 @@ New-Bitmap (Join-Path $OutputDir "gallery-property-inspector.png") {
     param($g)
     Background $g
     Text $g "Property Inspector" 120 120 70 "#f6fff8" ([System.Drawing.FontStyle]::Bold)
-    Text $g "Modes, thresholds, refresh, mood." 124 218 34 "#a7b0bd"
+    Text $g "Modes, thresholds, refresh." 124 218 34 "#a7b0bd"
     FillRound $g 970 105 700 750 28 "#1b1b1f"
     Text $g "DISPLAY" 1030 160 24 "#9ca8b8" ([System.Drawing.FontStyle]::Bold)
     Text $g "Mode                 Dual bars" 1030 220 32 "#f4f6f8"
-    Text $g "Single display        Auto" 1030 278 32 "#f4f6f8"
+    Text $g "Single icon shows     Auto - lowest" 1030 278 32 "#f4f6f8"
     Text $g "Percent basis         Remaining" 1030 336 32 "#f4f6f8"
     Text $g "Refresh interval      300 seconds" 1030 394 32 "#f4f6f8"
     Text $g "THRESHOLDS" 1030 478 24 "#9ca8b8" ([System.Drawing.FontStyle]::Bold)
     Text $g "Yellow 50     Red 20     Critical 10" 1030 538 32 "#f4f6f8"
-    Text $g "INDICATORS" 1030 622 24 "#9ca8b8" ([System.Drawing.FontStyle]::Bold)
-    Text $g "Mood icons on     Pulse low state on" 1030 682 32 "#f4f6f8"
+    Text $g "ADVANCED" 1030 622 24 "#9ca8b8" ([System.Drawing.FontStyle]::Bold)
+    Text $g "Optional Spark limit display" 1030 682 32 "#f4f6f8"
     Text $g "Privacy: uses local Codex auth; tokens are not logged." 1030 780 24 "#8e99a8"
 }
 
