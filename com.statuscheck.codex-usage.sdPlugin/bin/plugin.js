@@ -3647,9 +3647,140 @@ var require_websocket_server = __commonJS({
 });
 
 // src/plugin.mjs
-var import_node_fs4 = __toESM(require("node:fs"), 1);
+var import_node_fs5 = __toESM(require("node:fs"), 1);
+
+// src/usage-client.mjs
+var import_node_fs = __toESM(require("node:fs"), 1);
 var import_node_os = __toESM(require("node:os"), 1);
-var import_node_path6 = __toESM(require("node:path"), 1);
+var import_node_path = __toESM(require("node:path"), 1);
+var ERROR_CODES = /* @__PURE__ */ new Set(["LOGIN", "AUTH", "ACCESS", "AUTH_READ", "AUTH_FORMAT", "AUTH_CONFIG", "STORAGE", "API_KEY", "NETWORK", "TIMEOUT", "RATE_LIMIT", "SERVER", "ENDPOINT", "HTTP"]);
+var transient = (error40) => ["NETWORK", "TIMEOUT", "RATE_LIMIT", "SERVER"].includes(error40?.code);
+var failure = (code, extra = {}) => Object.assign(new Error(code), { code, ...extra });
+function authSource(override = "", env = process.env, home = import_node_os.default.homedir()) {
+  const root = env.CODEX_HOME || import_node_path.default.join(home, ".codex");
+  const expand = (value) => value.replace(/^~(?=[\\/]|$)/, home);
+  const file2 = import_node_path.default.resolve(expand(override || import_node_path.default.join(root, "auth.json")));
+  return { file: file2, config: override ? null : import_node_path.default.resolve(expand(import_node_path.default.join(root, "config.toml"))), key: `${override ? "explicit" : "auto"}:${process.platform === "win32" ? file2.toLowerCase() : file2}`, label: override ? "Custom file" : env.CODEX_HOME ? "CODEX_HOME" : "Default Codex file" };
+}
+function sourceRevision(source) {
+  return [source.file, source.config].map((file2) => {
+    if (!file2) return "";
+    try {
+      const s = import_node_fs.default.statSync(file2, { bigint: true });
+      return `${s.ino}:${s.size}:${s.mtimeNs}:${s.ctimeNs}`;
+    } catch (e) {
+      return e.code;
+    }
+  }).join("|");
+}
+function readCredentials(source) {
+  let store = "file";
+  if (source.config) {
+    try {
+      const text2 = import_node_fs.default.readFileSync(source.config, "utf8");
+      const root = text2.split(/^\s*\[/m)[0];
+      const match = root.match(/^\s*cli_auth_credentials_store\s*=\s*["']([^"']+)["']\s*(?:#.*)?$/m);
+      if (match) store = match[1];
+      else if (/^\s*cli_auth_credentials_store\s*=/m.test(root)) throw failure("AUTH_CONFIG");
+    } catch (e) {
+      if (e.code !== "ENOENT") throw failure("AUTH_CONFIG");
+    }
+  }
+  if (!["file", "auto", "keyring", "ephemeral"].includes(store)) throw failure("AUTH_CONFIG");
+  if (store !== "file") throw failure("STORAGE", { storage: store });
+  let text;
+  try {
+    text = import_node_fs.default.readFileSync(source.file, "utf8");
+  } catch (e) {
+    throw failure(e.code === "ENOENT" ? store === "auto" ? "STORAGE" : "LOGIN" : "AUTH_READ");
+  }
+  let auth;
+  try {
+    auth = JSON.parse(text.replace(/^\uFEFF/, ""));
+  } catch {
+    throw failure("AUTH_FORMAT");
+  }
+  if (auth?.auth_mode === "apikey" || !auth?.tokens?.access_token && auth?.OPENAI_API_KEY) throw failure("API_KEY");
+  const accessToken = auth?.tokens?.access_token;
+  const accountId = auth?.tokens?.account_id;
+  if (typeof accessToken !== "string" || !accessToken || typeof accountId !== "string" || !accountId) throw failure("LOGIN");
+  return { accessToken, accountId };
+}
+async function requestJson(url2, credentials, { fetchImpl = fetch, timeoutMs = 12e3, now = Date.now } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetchImpl(url2, {
+      signal: controller.signal,
+      redirect: "error",
+      headers: { Authorization: `Bearer ${credentials.accessToken}`, "ChatGPT-Account-Id": credentials.accountId, "User-Agent": "codex-cli", Accept: "application/json" }
+    });
+    if (!response.ok) {
+      const status = response.status;
+      const raw = response.headers.get("retry-after");
+      const seconds = raw == null ? NaN : Number(raw);
+      const retryAfterMs = Math.max(0, Number.isFinite(seconds) ? seconds * 1e3 : (Date.parse(raw) || 0) - now());
+      throw failure(status === 401 ? "AUTH" : status === 403 ? "ACCESS" : status === 429 ? "RATE_LIMIT" : status >= 500 ? "SERVER" : status === 404 ? "ENDPOINT" : "HTTP", { status, retryAfterMs });
+    }
+    try {
+      return await response.json();
+    } catch (e) {
+      throw controller.signal.aborted ? failure("TIMEOUT") : failure("ENDPOINT");
+    }
+  } catch (e) {
+    if (ERROR_CODES.has(e.code)) throw e;
+    throw failure(controller.signal.aborted ? "TIMEOUT" : "NETWORK");
+  } finally {
+    clearTimeout(timer);
+  }
+}
+var SharedPoller = class {
+  constructor(load, { now = Date.now, revision = sourceRevision, random = Math.random } = {}) {
+    this.load = load;
+    this.now = now;
+    this.revision = revision;
+    this.random = random;
+    this.entries = /* @__PURE__ */ new Map();
+  }
+  entry(source) {
+    const revision = this.revision(source);
+    let entry = this.entries.get(source.key);
+    if (!entry || entry.revision !== revision) {
+      entry = { revision, failures: 0, retryAt: 0, value: null, pending: null };
+      this.entries.set(source.key, entry);
+    }
+    return entry;
+  }
+  async get(source, { maxAgeMs = 3e5, manual = false } = {}) {
+    const entry = this.entry(source);
+    if (entry.pending) return entry.pending;
+    if (entry.error && this.now() < entry.retryAt) throw entry.error;
+    if (!entry.error && entry.value && this.now() - entry.updatedAt < (manual ? 1e3 : maxAgeMs)) return entry.value;
+    entry.pending = (async () => {
+      try {
+        const value = await this.load(source);
+        entry.updatedAt = this.now();
+        entry.value = { ...value, updatedAt: new Date(entry.updatedAt).toISOString(), revision: entry.revision };
+        entry.error = null;
+        entry.failures = 0;
+        entry.retryAt = 0;
+        return entry.value;
+      } catch (e) {
+        entry.error = e;
+        entry.failures++;
+        const delay = transient(e) ? Math.min(3e5, 15e3 * 2 ** Math.min(entry.failures - 1, 5)) * (1 + this.random() * 0.2) : 3e4;
+        entry.retryAt = this.now() + Math.max(delay, e.retryAfterMs || 0);
+        throw e;
+      } finally {
+        entry.pending = null;
+      }
+    })();
+    return entry.pending;
+  }
+  prune(keys) {
+    for (const key of this.entries.keys()) if (!keys.has(key)) this.entries.delete(key);
+  }
+};
 
 // node_modules/@elgato/utils/dist/i18n/language.js
 var defaultLanguage = "en";
@@ -15445,8 +15576,8 @@ var Logger = class _Logger {
 };
 
 // node_modules/@elgato/utils/dist/logging/node/file-target.js
-var import_node_fs = __toESM(require("node:fs"), 1);
-var import_node_path = __toESM(require("node:path"), 1);
+var import_node_fs2 = __toESM(require("node:fs"), 1);
+var import_node_path2 = __toESM(require("node:path"), 1);
 var FileTarget = class {
   /**
    * File path where logs will be written.
@@ -15473,13 +15604,13 @@ var FileTarget = class {
    * @inheritdoc
    */
   write(entry) {
-    const fd = import_node_fs.default.openSync(this.#filePath, "a");
+    const fd = import_node_fs2.default.openSync(this.#filePath, "a");
     try {
       const msg = this.#options.format(entry);
-      import_node_fs.default.writeSync(fd, msg + "\n");
+      import_node_fs2.default.writeSync(fd, msg + "\n");
       this.#size += msg.length;
     } finally {
-      import_node_fs.default.closeSync(fd);
+      import_node_fs2.default.closeSync(fd);
     }
     if (this.#size >= this.#options.maxSize) {
       this.reIndex();
@@ -15492,7 +15623,7 @@ var FileTarget = class {
    * @returns File path that represents the indexed log file.
    */
   getLogFilePath(index = 0) {
-    return import_node_path.default.join(this.#options.dest, `${this.#options.fileName}.${index}.log`);
+    return import_node_path2.default.join(this.#options.dest, `${this.#options.fileName}.${index}.log`);
   }
   /**
    * Gets the log files associated with this file target, including past and present.
@@ -15500,7 +15631,7 @@ var FileTarget = class {
    */
   getLogFiles() {
     const regex = /^\.(\d+)\.log$/;
-    return import_node_fs.default.readdirSync(this.#options.dest, { withFileTypes: true }).reduce((prev, entry) => {
+    return import_node_fs2.default.readdirSync(this.#options.dest, { withFileTypes: true }).reduce((prev, entry) => {
       if (entry.isDirectory() || entry.name.indexOf(this.#options.fileName) < 0) {
         return prev;
       }
@@ -15509,7 +15640,7 @@ var FileTarget = class {
         return prev;
       }
       prev.push({
-        path: import_node_path.default.join(this.#options.dest, entry.name),
+        path: import_node_path2.default.join(this.#options.dest, entry.name),
         index: parseInt(match[1])
       });
       return prev;
@@ -15522,28 +15653,28 @@ var FileTarget = class {
    * remaining log files, leaving index "0" free for a new log file.
    */
   reIndex() {
-    if (!import_node_fs.default.existsSync(this.#options.dest)) {
-      import_node_fs.default.mkdirSync(this.#options.dest);
+    if (!import_node_fs2.default.existsSync(this.#options.dest)) {
+      import_node_fs2.default.mkdirSync(this.#options.dest);
       return;
     }
     const logFiles = this.getLogFiles();
     for (let i = logFiles.length - 1; i >= 0; i--) {
       const log = logFiles[i];
       if (i >= this.#options.maxFileCount - 1) {
-        import_node_fs.default.rmSync(log.path);
+        import_node_fs2.default.rmSync(log.path);
       } else {
-        import_node_fs.default.renameSync(log.path, this.getLogFilePath(i + 1));
+        import_node_fs2.default.renameSync(log.path, this.getLogFilePath(i + 1));
       }
     }
   }
 };
 
 // node_modules/@elgato/streamdeck/dist/plugin/logging/index.js
-var import_node_path3 = __toESM(require("node:path"), 1);
+var import_node_path4 = __toESM(require("node:path"), 1);
 var import_node_process = require("node:process");
 
 // node_modules/@elgato/streamdeck/dist/plugin/common/utils.js
-var import_node_path2 = __toESM(require("node:path"), 1);
+var import_node_path3 = __toESM(require("node:path"), 1);
 var __isDebugMode = void 0;
 function isDebugMode() {
   if (__isDebugMode === void 0) {
@@ -15555,14 +15686,14 @@ function isDebugMode() {
   return __isDebugMode;
 }
 function getPluginUUID() {
-  const name = import_node_path2.default.basename(process.cwd());
+  const name = import_node_path3.default.basename(process.cwd());
   const suffixIndex = name.lastIndexOf(".sdPlugin");
   return suffixIndex < 0 ? name : name.substring(0, suffixIndex);
 }
 
 // node_modules/@elgato/streamdeck/dist/plugin/logging/index.js
 var fileTarget = new FileTarget({
-  dest: import_node_path3.default.join((0, import_node_process.cwd)(), "logs"),
+  dest: import_node_path4.default.join((0, import_node_process.cwd)(), "logs"),
   fileName: getPluginUUID(),
   format: stringFormatter(),
   maxFileCount: 10,
@@ -15763,15 +15894,15 @@ var ActionEvent = class extends ActionWithoutPayloadEvent {
 };
 
 // node_modules/@elgato/streamdeck/dist/plugin/manifest.js
-var import_node_fs2 = require("node:fs");
-var import_node_path4 = require("node:path");
+var import_node_fs3 = require("node:fs");
+var import_node_path5 = require("node:path");
 var manifest = new Lazy(() => {
-  const path6 = (0, import_node_path4.join)(process.cwd(), "manifest.json");
-  if (!(0, import_node_fs2.existsSync)(path6)) {
+  const path6 = (0, import_node_path5.join)(process.cwd(), "manifest.json");
+  if (!(0, import_node_fs3.existsSync)(path6)) {
     throw new Error("Failed to read manifest.json as the file does not exist.");
   }
   try {
-    return JSON.parse((0, import_node_fs2.readFileSync)(path6, {
+    return JSON.parse((0, import_node_fs3.readFileSync)(path6, {
       encoding: "utf-8",
       flag: "r"
     }).toString());
@@ -17015,15 +17146,15 @@ var DeviceService = class extends ReadOnlyDeviceStore {
 var deviceService = new DeviceService();
 
 // node_modules/@elgato/streamdeck/dist/plugin/i18n.js
-var import_node_fs3 = __toESM(require("node:fs"), 1);
-var import_node_path5 = __toESM(require("node:path"), 1);
+var import_node_fs4 = __toESM(require("node:fs"), 1);
+var import_node_path6 = __toESM(require("node:path"), 1);
 function fileSystemLocaleProvider(language) {
-  const filePath = import_node_path5.default.join(process.cwd(), `${language}.json`);
-  if (!import_node_fs3.default.existsSync(filePath)) {
+  const filePath = import_node_path6.default.join(process.cwd(), `${language}.json`);
+  if (!import_node_fs4.default.existsSync(filePath)) {
     return null;
   }
   try {
-    const contents = import_node_fs3.default.readFileSync(filePath, { flag: "r" })?.toString();
+    const contents = import_node_fs4.default.readFileSync(filePath, { flag: "r" })?.toString();
     return parseLocalizations(contents);
   } catch (err) {
     logger.error(`Failed to load translations from ${filePath}`, err);
@@ -17196,10 +17327,68 @@ var plugin_default = streamDeck;
 var ACTION_UUID = "com.statuscheck.codex-usage.usage";
 var USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 var RESET_CREDITS_URL = "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits";
-var PLUGIN_VERSION = "0.1.12.0";
+var PLUGIN_VERSION = "0.1.13.0";
 var FIVE_HOUR_MAX_SECONDS = 24 * 60 * 60;
 var WEEKLY_MIN_SECONDS = 3 * 24 * 60 * 60;
 var actions = /* @__PURE__ */ new Map();
+var detailsBudgets = /* @__PURE__ */ new Map();
+async function loadResetDetails(source, credentials) {
+  const revision = sourceRevision(source);
+  const previous = detailsBudgets.get(source.key);
+  if (previous?.revision === revision && Date.now() < previous.retryAt) throw previous.error;
+  try {
+    const result = await fetchResetDetails(credentials);
+    detailsBudgets.delete(source.key);
+    return result;
+  } catch (error40) {
+    const failures = previous?.revision === revision ? previous.failures + 1 : 1;
+    const delay = transient(error40) ? Math.min(3e5, 15e3 * 2 ** Math.min(failures - 1, 5)) : 3e5;
+    detailsBudgets.set(source.key, { revision, error: error40, failures, retryAt: Date.now() + Math.max(delay, error40.retryAfterMs || 0) });
+    throw error40;
+  }
+}
+var poller = new SharedPoller(async (source) => {
+  const mock = process.env.CODEX_USAGE_MOCK_PAYLOAD || process.env.CODEX_USAGE_MOCK_ERROR;
+  const credentials = mock ? null : readCredentials(source);
+  const [usage, details] = await Promise.allSettled([
+    fetchCodexUsage(credentials),
+    loadResetDetails(source, credentials)
+  ]);
+  if (usage.status === "rejected") throw usage.reason;
+  return {
+    usage: usage.value,
+    details: details.status === "fulfilled" ? details.value : null,
+    detailsError: details.status === "rejected" ? details.reason : null
+  };
+});
+var recoveryTimer = setInterval(() => {
+  const keys = /* @__PURE__ */ new Set();
+  for (const action2 of actions.values()) {
+    const source = authSource(action2.settings.authPath);
+    keys.add(source.key);
+    const revision = sourceRevision(source);
+    if (action2.authRevision !== revision) {
+      action2.authRevision = revision;
+      action2.lastUsage = null;
+      action2.lastResetDetails = null;
+      action2.lastUpdatedAt = null;
+      refreshAction(action2.context, { manual: true }).catch(() => {
+      });
+      continue;
+    } else if (action2.lastError && action2.lastUsage) {
+      renderAction(action2, action2.lastUsage).catch(() => {
+      });
+    }
+    const entry = poller.entry(source);
+    if (action2.lastError && !entry.pending && entry.retryAt <= Date.now()) {
+      refreshAction(action2.context, { manual: true }).catch(() => {
+      });
+    }
+  }
+  poller.prune(keys);
+  for (const key of detailsBudgets.keys()) if (!keys.has(key)) detailsBudgets.delete(key);
+}, 2e3);
+recoveryTimer.unref();
 var CodexUsageAction = class extends SingletonAction {
   constructor() {
     super();
@@ -17222,15 +17411,16 @@ var CodexUsageAction = class extends SingletonAction {
       lastUpdatedAt: null
     });
     scheduleRefresh(context);
-    await refreshAction(context, { force: true });
+    await refreshAction(context, {});
   }
   onWillDisappear(ev) {
     const action2 = actions.get(ev.action.id);
     clearActionTimers(action2);
+    if (action2) action2.requestId = (action2.requestId || 0) + 1;
     actions.delete(ev.action.id);
   }
   async onKeyDown(ev) {
-    await refreshAction(ev.action.id, { force: true, feedback: true });
+    await refreshAction(ev.action.id, { manual: true, feedback: true });
   }
   async onDidReceiveSettings(ev) {
     const context = ev.action.id;
@@ -17256,8 +17446,15 @@ var CodexUsageAction = class extends SingletonAction {
     if (!existing || refreshChanged) {
       scheduleRefresh(context);
     }
+    if (authPathChanged) {
+      action2.lastUsage = null;
+      action2.lastResetDetails = null;
+      action2.lastUpdatedAt = null;
+      action2.lastError = null;
+      action2.authRevision = null;
+    }
     if (!existing || authPathChanged || !action2.lastUsage && !action2.lastError) {
-      await refreshAction(context, { force: true });
+      await refreshAction(context, {});
       return;
     }
     if (action2.lastUsage) {
@@ -17271,7 +17468,7 @@ var CodexUsageAction = class extends SingletonAction {
   }
   async onSendToPlugin(ev) {
     if (ev.payload?.type === "refresh") {
-      await refreshAction(ev.action.id, { force: true, feedback: true });
+      await refreshAction(ev.action.id, { manual: true, feedback: true });
     } else if (ev.payload?.type === "request-status") {
       const action2 = actions.get(ev.action.id);
       if (action2) {
@@ -17310,7 +17507,7 @@ function scheduleRefresh(context) {
   }
   const refreshMs = Math.max(15, action2.settings.refreshSeconds) * 1e3;
   action2.refreshTimer = setInterval(() => {
-    refreshAction(context, { force: true }).catch(() => {
+    refreshAction(context, {}).catch(() => {
     });
   }, refreshMs);
 }
@@ -17367,37 +17564,43 @@ async function refreshAction(context, options = {}) {
   if (!action2) {
     return;
   }
+  const source = authSource(action2.settings.authPath);
+  const revision = sourceRevision(source);
+  if (action2.authRevision && action2.authRevision !== revision) {
+    action2.lastUsage = null;
+    action2.lastResetDetails = null;
+    action2.lastUpdatedAt = null;
+  }
+  action2.authRevision = revision;
+  const requestId = action2.requestId = (action2.requestId || 0) + 1;
+  const current = () => actions.get(context) === action2 && action2.requestId === requestId && authSource(action2.settings.authPath).key === source.key && sourceRevision(source) === revision;
   await sendUsageStatus(action2, "refreshing");
   try {
-    const [usageResult, resetDetailsResult] = await Promise.allSettled([
-      fetchCodexUsage(action2.settings),
-      fetchResetDetails(action2.settings)
-    ]);
-    if (usageResult.status === "rejected") {
-      throw usageResult.reason;
-    }
-    const usage = usageResult.value;
-    action2.lastUsage = usage;
-    action2.lastResetDetails = resetDetailsResult.status === "fulfilled" ? resetDetailsResult.value : null;
-    action2.resetDetailsError = resetDetailsResult.status === "rejected" ? resetDetailsResult.reason : null;
+    const result = await poller.get(source, { maxAgeMs: action2.settings.refreshSeconds * 1e3, manual: options.manual });
+    if (!current()) return;
+    action2.lastUsage = result.usage;
+    action2.lastResetDetails = result.details;
+    action2.resetDetailsError = result.detailsError;
     action2.lastError = null;
-    action2.lastUpdatedAt = (/* @__PURE__ */ new Date()).toISOString();
+    action2.lastUpdatedAt = result.updatedAt;
     action2.flickerOn = false;
-    await renderAction(action2, usage);
+    await renderAction(action2, result.usage);
     scheduleFlicker(context);
     await sendUsageStatus(action2, "ok");
-    if (options.feedback) {
-      await action2.sdkAction.showOk();
-    }
+    if (options.feedback) await action2.sdkAction.showOk();
   } catch (error40) {
+    if (!current()) return;
     action2.lastError = error40;
-    action2.lastUsage = null;
-    stopFlicker(action2);
-    await renderError(action2, error40);
-    await sendUsageStatus(action2, "error", error40);
-    if (options.feedback) {
-      await action2.sdkAction.showAlert();
+    if (!transient(error40)) {
+      action2.lastUsage = null;
+      action2.lastResetDetails = null;
+      action2.resetDetailsError = null;
     }
+    stopFlicker(action2);
+    if (action2.lastUsage) await renderAction(action2, action2.lastUsage);
+    else await renderError(action2, error40);
+    await sendUsageStatus(action2, action2.lastUsage ? "stale" : "error", error40);
+    if (options.feedback) await action2.sdkAction.showAlert();
   }
 }
 function defaultSettings() {
@@ -17484,14 +17687,14 @@ function clampNumber(value, fallback, min, max) {
   }
   return Math.min(max, Math.max(min, Math.round(number4)));
 }
-async function fetchCodexUsage(settings2) {
+async function fetchCodexUsage(credentials) {
   if (process.env.CODEX_USAGE_MOCK_ERROR) {
     const err = new Error(`Mock ${process.env.CODEX_USAGE_MOCK_ERROR}`);
     err.code = process.env.CODEX_USAGE_MOCK_ERROR;
     throw err;
   }
   if (process.env.CODEX_USAGE_MOCK_PAYLOAD) {
-    const payload2 = JSON.parse(import_node_fs4.default.readFileSync(process.env.CODEX_USAGE_MOCK_PAYLOAD, "utf8"));
+    const payload2 = JSON.parse(import_node_fs5.default.readFileSync(process.env.CODEX_USAGE_MOCK_PAYLOAD, "utf8"));
     if (!hasRecognizedWindows(payload2?.rate_limit)) {
       const err = new Error("Mock Codex usage response changed shape.");
       err.code = "ENDPOINT";
@@ -17499,42 +17702,7 @@ async function fetchCodexUsage(settings2) {
     }
     return payload2;
   }
-  const auth = readCodexAuth(settings2.authPath);
-  const tokens = auth.tokens || {};
-  const accessToken = tokens.access_token;
-  const accountId = tokens.account_id;
-  if (!accessToken || !accountId) {
-    const err = new Error("Codex is not logged in.");
-    err.code = "LOGIN";
-    throw err;
-  }
-  let response;
-  try {
-    response = await fetch(USAGE_URL, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "ChatGPT-Account-Id": accountId,
-        "User-Agent": "codex-cli",
-        Accept: "application/json"
-      }
-    });
-  } catch {
-    const err = new Error("Network error while checking Codex usage.");
-    err.code = "NETWORK";
-    throw err;
-  }
-  if (response.status === 401 || response.status === 403) {
-    const err = new Error("Codex login needs refresh.");
-    err.code = "AUTH";
-    throw err;
-  }
-  if (!response.ok) {
-    const err = new Error(`Usage request failed: ${response.status}`);
-    err.code = response.status === 404 ? "ENDPOINT" : "HTTP";
-    err.status = response.status;
-    throw err;
-  }
-  const payload = await response.json();
+  const payload = await requestJson(USAGE_URL, credentials);
   if (!hasRecognizedWindows(payload?.rate_limit)) {
     const err = new Error("Codex usage response changed shape.");
     err.code = "ENDPOINT";
@@ -17542,73 +17710,28 @@ async function fetchCodexUsage(settings2) {
   }
   return payload;
 }
-async function fetchResetDetails(settings2) {
+async function fetchResetDetails(credentials) {
   if (process.env.CODEX_RESET_CREDITS_MOCK_ERROR) {
     const err = new Error(`Mock ${process.env.CODEX_RESET_CREDITS_MOCK_ERROR}`);
     err.code = process.env.CODEX_RESET_CREDITS_MOCK_ERROR;
     throw err;
   }
   if (process.env.CODEX_RESET_CREDITS_MOCK_PAYLOAD) {
-    return JSON.parse(import_node_fs4.default.readFileSync(process.env.CODEX_RESET_CREDITS_MOCK_PAYLOAD, "utf8"));
+    return JSON.parse(import_node_fs5.default.readFileSync(process.env.CODEX_RESET_CREDITS_MOCK_PAYLOAD, "utf8"));
   }
   if (process.env.CODEX_USAGE_MOCK_PAYLOAD || process.env.CODEX_USAGE_MOCK_ERROR) {
     return null;
   }
-  const auth = readCodexAuth(settings2.authPath);
-  const tokens = auth.tokens || {};
-  const accessToken = tokens.access_token;
-  const accountId = tokens.account_id;
-  if (!accessToken || !accountId) {
-    const err = new Error("Codex is not logged in.");
-    err.code = "LOGIN";
-    throw err;
-  }
-  let response;
-  try {
-    response = await fetch(RESET_CREDITS_URL, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "ChatGPT-Account-Id": accountId,
-        "User-Agent": "codex-cli",
-        Accept: "application/json"
-      }
-    });
-  } catch {
-    const err = new Error("Network error while checking reset details.");
-    err.code = "NETWORK";
-    throw err;
-  }
-  if (response.status === 401 || response.status === 403) {
-    const err = new Error("Codex login needs refresh.");
-    err.code = "AUTH";
-    throw err;
-  }
-  if (!response.ok) {
-    const err = new Error(`Reset details request failed: ${response.status}`);
-    err.code = response.status === 404 ? "ENDPOINT" : "HTTP";
-    err.status = response.status;
-    throw err;
-  }
-  return response.json();
-}
-function readCodexAuth(authPathOverride) {
-  const authPath = authPathOverride || import_node_path6.default.join(import_node_os.default.homedir(), ".codex", "auth.json");
-  if (!import_node_fs4.default.existsSync(authPath)) {
-    const err = new Error("Codex auth file not found.");
-    err.code = "LOGIN";
-    throw err;
-  }
-  try {
-    return JSON.parse(import_node_fs4.default.readFileSync(authPath, "utf8"));
-  } catch {
-    const err = new Error("Codex auth file could not be read.");
-    err.code = "AUTH";
-    throw err;
-  }
+  return requestJson(RESET_CREDITS_URL, credentials);
 }
 async function renderAction(action2, payload) {
   const snapshot = makeSnapshot(payload, action2.settings, action2.lastResetDetails);
-  const svg = renderUsageSvg(snapshot, action2.settings, { flickerOn: action2.flickerOn });
+  let svg = renderUsageSvg(snapshot, action2.settings, { flickerOn: action2.flickerOn });
+  if (action2.lastError) {
+    const minutes = Math.max(0, Math.floor((Date.now() - Date.parse(action2.lastUpdatedAt)) / 6e4));
+    const age = minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h`;
+    svg = svg.replace("</svg>", `<rect x="0" y="0" width="144" height="144" rx="28" fill="#000" opacity="0.4"/><rect x="10" y="2" width="124" height="22" rx="6" fill="#ffb020"/><text x="72" y="18" text-anchor="middle" font-family="Arial" font-size="13" font-weight="bold" fill="#111">STALE \xB7 ${age} AGO</text></svg>`);
+  }
   await action2.sdkAction.setImage(`data:image/svg+xml,${encodeURIComponent(svg)}`, { target: 0 });
   await action2.sdkAction.setTitle("");
 }
@@ -17622,15 +17745,18 @@ async function sendUsageStatus(action2, state = null, error40 = null) {
     return;
   }
   const snapshot = action2.lastUsage ? makeSnapshot(action2.lastUsage, action2.settings, action2.lastResetDetails) : null;
-  const resolvedState = state || (action2.lastError ? "error" : action2.lastUsage ? "ok" : "refreshing");
+  const resolvedState = state || (action2.lastError ? action2.lastUsage ? "stale" : "error" : action2.lastUsage ? "ok" : "refreshing");
   const statusError = error40 || action2.lastError;
-  const knownErrorCodes = /* @__PURE__ */ new Set(["LOGIN", "AUTH", "NETWORK", "ENDPOINT", "HTTP"]);
-  const errorCode = resolvedState === "error" && knownErrorCodes.has(statusError?.code) ? statusError.code : null;
+  const knownErrorCodes = ERROR_CODES;
+  const errorCode = (resolvedState === "error" || resolvedState === "stale") && knownErrorCodes.has(statusError?.code) ? statusError.code : null;
   try {
     await plugin_default.ui.sendToPropertyInspector({
       type: "usage-status",
+      context: action2.context,
       state: resolvedState,
       lastUpdatedAt: action2.lastUpdatedAt,
+      authSource: authSource(action2.settings.authPath).label,
+      retryAt: poller.entry(authSource(action2.settings.authPath)).retryAt || null,
       resetCredits: {
         availableCount: snapshot?.resetCredits.availableCount ?? null,
         applicableAvailableCount: snapshot?.resetCredits.applicableAvailableCount ?? null,
@@ -17750,7 +17876,7 @@ function normalizeDisplayText(value, maxLength) {
   return normalized.length > 0 ? normalized.slice(0, maxLength) : null;
 }
 function sanitizeErrorCode(error40) {
-  const knownErrorCodes = /* @__PURE__ */ new Set(["LOGIN", "AUTH", "NETWORK", "ENDPOINT", "HTTP"]);
+  const knownErrorCodes = ERROR_CODES;
   return knownErrorCodes.has(error40?.code) ? error40.code : "HTTP";
 }
 function normalizeNonNegativeInteger(value) {
@@ -18046,6 +18172,8 @@ function renderErrorSvg(error40) {
 </svg>`;
 }
 function errorState(error40) {
+  const labels = { ACCESS: ["ACCESS", "DENIED"], AUTH_READ: ["AUTH FILE", "UNREADABLE"], AUTH_FORMAT: ["AUTH FILE", "INVALID"], AUTH_CONFIG: ["CONFIG", "CHECK"], STORAGE: ["AUTH STORE", "CHECK"], API_KEY: ["API KEY", "UNSUPPORTED"], TIMEOUT: ["TIMEOUT", "RETRY"], RATE_LIMIT: ["RATE LIMIT", "WAIT"], SERVER: ["SERVICE", "RETRY"] };
+  if (labels[error40.code]) return { bg: "#120f18", panel: "#1b1422", accent: "#ffb020", label: labels[error40.code][0], sub: labels[error40.code][1], size: "18", icon: '<path d="M72 31v24" stroke="#ffb020" stroke-width="8" stroke-linecap="round"/>' };
   if (error40.code === "LOGIN") {
     return {
       bg: "#101722",
@@ -18063,7 +18191,7 @@ function errorState(error40) {
       panel: "#211522",
       accent: "#ffb020",
       label: "AUTH",
-      sub: "EXPIRED",
+      sub: "SIGN IN",
       size: "24",
       icon: `<path d="M72 31v24" stroke="#ffb020" stroke-width="8" stroke-linecap="round"/><circle cx="72" cy="66" r="4" fill="#ffb020"/>`
     };

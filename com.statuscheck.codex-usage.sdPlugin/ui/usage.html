@@ -309,12 +309,12 @@
     <summary>Advanced</summary>
     <label>
       Auth path
-      <input id="authPath" type="text" placeholder="Blank uses ~/.codex/auth.json">
+      <input id="authPath" type="text" placeholder="Blank uses CODEX_HOME or ~/.codex/auth.json">
     </label>
   </details>
 
   <div class="footer">
-    Codex Usage Monitor <code>v0.1.12.0</code><br>
+    Codex Usage Monitor <code>v0.1.13.0</code><br>
     Support info: action <code>com.statuscheck.codex-usage.usage</code>
   </div>
 
@@ -361,7 +361,7 @@
         if (message.event === "didReceiveSettings") {
           applySettings({ ...defaults, ...(message.payload.settings || {}) });
         } else if (message.event === "sendToPropertyInspector" && message.payload?.type === "usage-status") {
-          applyUsageStatus(message.payload);
+          if (message.payload.context === actionInfo.context) applyUsageStatus(message.payload);
         }
       };
     }
@@ -466,10 +466,10 @@
         || (status.resetCredits?.availableCount === 0 ? "No reset" : status.resetCredits?.detailsError ? "Details unavailable" : "Not reported");
       document.getElementById("resetExpires").textContent = expirationLabel(status.resetCredits?.expiresAt, use24HourTime);
       document.getElementById("lastUpdated").textContent = status.lastUpdatedAt
-        ? `Last updated ${new Date(status.lastUpdatedAt).toLocaleTimeString([], timeOptions)}`
+        ? `Last updated ${new Date(status.lastUpdatedAt).toLocaleString([], timeOptions)} · ${status.authSource || "Codex"}`
         : "No successful update yet";
-      document.getElementById("refreshFeedback").textContent = status.state === "error"
-        ? statusLabel(status)
+      document.getElementById("refreshFeedback").textContent = (status.state === "error" || status.state === "stale")
+        ? statusLabel(status) + (status.retryAt ? ` Retry after ${new Date(status.retryAt).toLocaleTimeString()}.` : "")
         : status.state === "refreshing" ? "Requesting current usage…" : "Usage is current. The key also refreshes when pressed.";
       updateConditionalControls();
     }
@@ -501,9 +501,19 @@
     function statusLabel(status) {
       if (status.state === "refreshing") return "Refreshing usage";
       if (status.state === "ok") return "Usage data current";
+      if (status.state === "stale") return "Offline or temporarily unavailable — showing last successful reading";
       return {
-        LOGIN: "Codex login required",
-        AUTH: "Codex login expired",
+        LOGIN: "Codex login required. Run codex login, then refresh.",
+        AUTH: "Codex login rejected. Run codex login, then refresh.",
+        ACCESS: "Access denied (403). Check account/workspace permissions.",
+        AUTH_READ: "Cannot read the auth file. Check file permissions.",
+        AUTH_FORMAT: "Auth file is invalid. Finish signing in to Codex and retry.",
+        AUTH_CONFIG: "Cannot read the Codex credential-storage setting. Check config.toml.",
+        STORAGE: "Codex uses keyring, automatic, or ephemeral storage. This plugin needs an explicitly selected Codex auth file; it cannot read those stores.",
+        API_KEY: "API-key login does not provide ChatGPT subscription usage. Sign in to Codex with ChatGPT.",
+        TIMEOUT: "Request timed out. Retrying automatically.",
+        RATE_LIMIT: "Too many requests (429). Waiting before retrying.",
+        SERVER: "Usage service temporarily unavailable. Retrying automatically.",
         NETWORK: "Network request failed",
         ENDPOINT: "Usage response changed",
         HTTP: "Usage request failed"

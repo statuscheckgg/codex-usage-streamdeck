@@ -1,5 +1,16 @@
 # Release Notes
 
+## 0.1.13.0
+
+- Honors CODEX_HOME and explicit credential paths; identifies unsupported keyring/auto/ephemeral storage and API-key logins without mislabeling them expired.
+- Separates rejected authentication, forbidden access, unreadable/invalid auth files, timeouts, rate limits, server failures, and changed responses.
+- Detects credential/config file changes every two seconds and recovers without waiting for the normal usage interval.
+- Shares in-flight requests and fresh readings across keys using the same credential source, with 12-second request/body timeouts and retry backoff honoring Retry-After.
+- Preserves last successful readings with a dimmed STALE age banner during temporary outages. Clears readings on credential changes and authentication failures.
+- Discards obsolete responses after settings changes or key removal and scopes Property Inspector status to its key.
+- Remains read-only: no token refresh, credential writes, browser-token scanning or reset consumption.
+
+
 ## 0.1.12.0
 
 - Reports banked Codex rate-limit resets and whether current usage can benefit from one.

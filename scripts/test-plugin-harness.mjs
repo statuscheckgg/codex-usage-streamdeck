@@ -39,7 +39,7 @@ const registrationInfo = JSON.stringify({
   ],
   plugin: {
     uuid: "com.statuscheck.codex-usage",
-    version: "0.1.12.0",
+    version: "0.1.13.0",
   },
 });
 
@@ -377,7 +377,7 @@ const scenarios = [
     name: "auth expired",
     env: { CODEX_USAGE_MOCK_ERROR: "AUTH" },
     settings: {},
-    expectDecoded: "EXPIRED",
+    expectDecoded: "SIGN IN",
   },
   {
     name: "endpoint changed",

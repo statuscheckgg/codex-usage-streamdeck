@@ -2,19 +2,71 @@
 "use strict";
 
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
+import { authSource, sourceRevision, readCredentials, requestJson, SharedPoller, ERROR_CODES, transient } from "./usage-client.mjs";
 import streamDeck, { SingletonAction } from "@elgato/streamdeck";
 
 const PLUGIN_UUID = "com.statuscheck.codex-usage";
 const ACTION_UUID = "com.statuscheck.codex-usage.usage";
 const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 const RESET_CREDITS_URL = "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits";
-const PLUGIN_VERSION = "0.1.12.0";
+const PLUGIN_VERSION = "0.1.13.0";
 const FIVE_HOUR_MAX_SECONDS = 24 * 60 * 60;
 const WEEKLY_MIN_SECONDS = 3 * 24 * 60 * 60;
 
 const actions = new Map();
+const detailsBudgets = new Map();
+async function loadResetDetails(source, credentials) {
+  const revision = sourceRevision(source);
+  const previous = detailsBudgets.get(source.key);
+  if (previous?.revision === revision && Date.now() < previous.retryAt) throw previous.error;
+  try {
+    const result = await fetchResetDetails(credentials);
+    detailsBudgets.delete(source.key);
+    return result;
+  } catch (error) {
+    const failures = previous?.revision === revision ? previous.failures + 1 : 1;
+    const delay = transient(error) ? Math.min(300000, 15000 * 2 ** Math.min(failures - 1, 5)) : 300000;
+    detailsBudgets.set(source.key, { revision, error, failures, retryAt: Date.now() + Math.max(delay, error.retryAfterMs || 0) });
+    throw error;
+  }
+}
+const poller = new SharedPoller(async (source) => {
+  const mock = process.env.CODEX_USAGE_MOCK_PAYLOAD || process.env.CODEX_USAGE_MOCK_ERROR;
+  const credentials = mock ? null : readCredentials(source);
+  const [usage, details] = await Promise.allSettled([
+    fetchCodexUsage(credentials), loadResetDetails(source, credentials),
+  ]);
+  if (usage.status === "rejected") throw usage.reason;
+  return { usage: usage.value, details: details.status === "fulfilled" ? details.value : null,
+    detailsError: details.status === "rejected" ? details.reason : null };
+});
+
+// Stat checks handle atomic replacement, deletion and recreation without retaining tokens.
+const recoveryTimer = setInterval(() => {
+  const keys = new Set();
+  for (const action of actions.values()) {
+    const source = authSource(action.settings.authPath);
+    keys.add(source.key);
+    const revision = sourceRevision(source);
+    if (action.authRevision !== revision) {
+      action.authRevision = revision;
+      action.lastUsage = null;
+      action.lastResetDetails = null;
+      action.lastUpdatedAt = null;
+      refreshAction(action.context, { manual: true }).catch(() => {});
+      continue;
+    } else if (action.lastError && action.lastUsage) {
+      renderAction(action, action.lastUsage).catch(() => {});
+    }
+    const entry = poller.entry(source);
+    if (action.lastError && !entry.pending && entry.retryAt <= Date.now()) {
+      refreshAction(action.context, { manual: true }).catch(() => {});
+    }
+  }
+  poller.prune(keys);
+  for (const key of detailsBudgets.keys()) if (!keys.has(key)) detailsBudgets.delete(key);
+}, 2000);
+recoveryTimer.unref();
 
 class CodexUsageAction extends SingletonAction {
   constructor() {
@@ -39,17 +91,18 @@ class CodexUsageAction extends SingletonAction {
       lastUpdatedAt: null,
     });
     scheduleRefresh(context);
-    await refreshAction(context, { force: true });
+    await refreshAction(context, {});
   }
 
   onWillDisappear(ev) {
     const action = actions.get(ev.action.id);
     clearActionTimers(action);
+    if (action) action.requestId = (action.requestId || 0) + 1;
     actions.delete(ev.action.id);
   }
 
   async onKeyDown(ev) {
-    await refreshAction(ev.action.id, { force: true, feedback: true });
+    await refreshAction(ev.action.id, { manual: true, feedback: true });
   }
 
   async onDidReceiveSettings(ev) {
@@ -76,8 +129,12 @@ class CodexUsageAction extends SingletonAction {
     if (!existing || refreshChanged) {
       scheduleRefresh(context);
     }
+    if (authPathChanged) {
+      action.lastUsage = null; action.lastResetDetails = null; action.lastUpdatedAt = null;
+      action.lastError = null; action.authRevision = null;
+    }
     if (!existing || authPathChanged || (!action.lastUsage && !action.lastError)) {
-      await refreshAction(context, { force: true });
+      await refreshAction(context, {});
       return;
     }
     if (action.lastUsage) {
@@ -92,7 +149,7 @@ class CodexUsageAction extends SingletonAction {
 
   async onSendToPlugin(ev) {
     if (ev.payload?.type === "refresh") {
-      await refreshAction(ev.action.id, { force: true, feedback: true });
+      await refreshAction(ev.action.id, { manual: true, feedback: true });
     } else if (ev.payload?.type === "request-status") {
       const action = actions.get(ev.action.id);
       if (action) {
@@ -138,7 +195,7 @@ function scheduleRefresh(context) {
 
   const refreshMs = Math.max(15, action.settings.refreshSeconds) * 1000;
   action.refreshTimer = setInterval(() => {
-    refreshAction(context, { force: true }).catch(() => {});
+    refreshAction(context, {}).catch(() => {});
   }, refreshMs);
 }
 
@@ -200,37 +257,40 @@ async function refreshAction(context, options = {}) {
     return;
   }
 
+  const source = authSource(action.settings.authPath);
+  const revision = sourceRevision(source);
+  if (action.authRevision && action.authRevision !== revision) {
+    action.lastUsage = null; action.lastResetDetails = null; action.lastUpdatedAt = null;
+  }
+  action.authRevision = revision;
+  const requestId = action.requestId = (action.requestId || 0) + 1;
+  const current = () => actions.get(context) === action && action.requestId === requestId
+    && authSource(action.settings.authPath).key === source.key && sourceRevision(source) === revision;
   await sendUsageStatus(action, "refreshing");
   try {
-    const [usageResult, resetDetailsResult] = await Promise.allSettled([
-      fetchCodexUsage(action.settings),
-      fetchResetDetails(action.settings),
-    ]);
-    if (usageResult.status === "rejected") {
-      throw usageResult.reason;
-    }
-    const usage = usageResult.value;
-    action.lastUsage = usage;
-    action.lastResetDetails = resetDetailsResult.status === "fulfilled" ? resetDetailsResult.value : null;
-    action.resetDetailsError = resetDetailsResult.status === "rejected" ? resetDetailsResult.reason : null;
+    const result = await poller.get(source, { maxAgeMs: action.settings.refreshSeconds * 1000, manual: options.manual });
+    if (!current()) return;
+    action.lastUsage = result.usage;
+    action.lastResetDetails = result.details;
+    action.resetDetailsError = result.detailsError;
     action.lastError = null;
-    action.lastUpdatedAt = new Date().toISOString();
+    action.lastUpdatedAt = result.updatedAt;
     action.flickerOn = false;
-    await renderAction(action, usage);
+    await renderAction(action, result.usage);
     scheduleFlicker(context);
     await sendUsageStatus(action, "ok");
-    if (options.feedback) {
-      await action.sdkAction.showOk();
-    }
+    if (options.feedback) await action.sdkAction.showOk();
   } catch (error) {
+    if (!current()) return;
     action.lastError = error;
-    action.lastUsage = null;
-    stopFlicker(action);
-    await renderError(action, error);
-    await sendUsageStatus(action, "error", error);
-    if (options.feedback) {
-      await action.sdkAction.showAlert();
+    if (!transient(error)) {
+      action.lastUsage = null; action.lastResetDetails = null; action.resetDetailsError = null;
     }
+    stopFlicker(action);
+    if (action.lastUsage) await renderAction(action, action.lastUsage);
+    else await renderError(action, error);
+    await sendUsageStatus(action, action.lastUsage ? "stale" : "error", error);
+    if (options.feedback) await action.sdkAction.showAlert();
   }
 }
 
@@ -325,7 +385,7 @@ function clampNumber(value, fallback, min, max) {
   return Math.min(max, Math.max(min, Math.round(number)));
 }
 
-async function fetchCodexUsage(settings) {
+async function fetchCodexUsage(credentials) {
   if (process.env.CODEX_USAGE_MOCK_ERROR) {
     const err = new Error(`Mock ${process.env.CODEX_USAGE_MOCK_ERROR}`);
     err.code = process.env.CODEX_USAGE_MOCK_ERROR;
@@ -342,47 +402,7 @@ async function fetchCodexUsage(settings) {
     return payload;
   }
 
-  const auth = readCodexAuth(settings.authPath);
-  const tokens = auth.tokens || {};
-  const accessToken = tokens.access_token;
-  const accountId = tokens.account_id;
-
-  if (!accessToken || !accountId) {
-    const err = new Error("Codex is not logged in.");
-    err.code = "LOGIN";
-    throw err;
-  }
-
-  let response;
-  try {
-    response = await fetch(USAGE_URL, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "ChatGPT-Account-Id": accountId,
-        "User-Agent": "codex-cli",
-        Accept: "application/json",
-      },
-    });
-  } catch {
-    const err = new Error("Network error while checking Codex usage.");
-    err.code = "NETWORK";
-    throw err;
-  }
-
-  if (response.status === 401 || response.status === 403) {
-    const err = new Error("Codex login needs refresh.");
-    err.code = "AUTH";
-    throw err;
-  }
-
-  if (!response.ok) {
-    const err = new Error(`Usage request failed: ${response.status}`);
-    err.code = response.status === 404 ? "ENDPOINT" : "HTTP";
-    err.status = response.status;
-    throw err;
-  }
-
-  const payload = await response.json();
+  const payload = await requestJson(USAGE_URL, credentials);
   if (!hasRecognizedWindows(payload?.rate_limit)) {
     const err = new Error("Codex usage response changed shape.");
     err.code = "ENDPOINT";
@@ -391,7 +411,7 @@ async function fetchCodexUsage(settings) {
   return payload;
 }
 
-async function fetchResetDetails(settings) {
+async function fetchResetDetails(credentials) {
   if (process.env.CODEX_RESET_CREDITS_MOCK_ERROR) {
     const err = new Error(`Mock ${process.env.CODEX_RESET_CREDITS_MOCK_ERROR}`);
     err.code = process.env.CODEX_RESET_CREDITS_MOCK_ERROR;
@@ -407,69 +427,17 @@ async function fetchResetDetails(settings) {
     return null;
   }
 
-  const auth = readCodexAuth(settings.authPath);
-  const tokens = auth.tokens || {};
-  const accessToken = tokens.access_token;
-  const accountId = tokens.account_id;
-
-  if (!accessToken || !accountId) {
-    const err = new Error("Codex is not logged in.");
-    err.code = "LOGIN";
-    throw err;
-  }
-
-  let response;
-  try {
-    response = await fetch(RESET_CREDITS_URL, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "ChatGPT-Account-Id": accountId,
-        "User-Agent": "codex-cli",
-        Accept: "application/json",
-      },
-    });
-  } catch {
-    const err = new Error("Network error while checking reset details.");
-    err.code = "NETWORK";
-    throw err;
-  }
-
-  if (response.status === 401 || response.status === 403) {
-    const err = new Error("Codex login needs refresh.");
-    err.code = "AUTH";
-    throw err;
-  }
-
-  if (!response.ok) {
-    const err = new Error(`Reset details request failed: ${response.status}`);
-    err.code = response.status === 404 ? "ENDPOINT" : "HTTP";
-    err.status = response.status;
-    throw err;
-  }
-
-  return response.json();
-}
-
-function readCodexAuth(authPathOverride) {
-  const authPath = authPathOverride || path.join(os.homedir(), ".codex", "auth.json");
-  if (!fs.existsSync(authPath)) {
-    const err = new Error("Codex auth file not found.");
-    err.code = "LOGIN";
-    throw err;
-  }
-
-  try {
-    return JSON.parse(fs.readFileSync(authPath, "utf8"));
-  } catch {
-    const err = new Error("Codex auth file could not be read.");
-    err.code = "AUTH";
-    throw err;
-  }
+  return requestJson(RESET_CREDITS_URL, credentials);
 }
 
 async function renderAction(action, payload) {
   const snapshot = makeSnapshot(payload, action.settings, action.lastResetDetails);
-  const svg = renderUsageSvg(snapshot, action.settings, { flickerOn: action.flickerOn });
+  let svg = renderUsageSvg(snapshot, action.settings, { flickerOn: action.flickerOn });
+  if (action.lastError) {
+    const minutes = Math.max(0, Math.floor((Date.now() - Date.parse(action.lastUpdatedAt)) / 60000));
+    const age = minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h`;
+    svg = svg.replace("</svg>", `<rect x="0" y="0" width="144" height="144" rx="28" fill="#000" opacity="0.4"/><rect x="10" y="2" width="124" height="22" rx="6" fill="#ffb020"/><text x="72" y="18" text-anchor="middle" font-family="Arial" font-size="13" font-weight="bold" fill="#111">STALE · ${age} AGO</text></svg>`);
+  }
   await action.sdkAction.setImage(`data:image/svg+xml,${encodeURIComponent(svg)}`, { target: 0 });
   await action.sdkAction.setTitle("");
 }
@@ -485,15 +453,18 @@ async function sendUsageStatus(action, state = null, error = null) {
     return;
   }
   const snapshot = action.lastUsage ? makeSnapshot(action.lastUsage, action.settings, action.lastResetDetails) : null;
-  const resolvedState = state || (action.lastError ? "error" : action.lastUsage ? "ok" : "refreshing");
+  const resolvedState = state || (action.lastError ? action.lastUsage ? "stale" : "error" : action.lastUsage ? "ok" : "refreshing");
   const statusError = error || action.lastError;
-  const knownErrorCodes = new Set(["LOGIN", "AUTH", "NETWORK", "ENDPOINT", "HTTP"]);
-  const errorCode = resolvedState === "error" && knownErrorCodes.has(statusError?.code) ? statusError.code : null;
+  const knownErrorCodes = ERROR_CODES;
+  const errorCode = (resolvedState === "error" || resolvedState === "stale") && knownErrorCodes.has(statusError?.code) ? statusError.code : null;
   try {
     await streamDeck.ui.sendToPropertyInspector({
       type: "usage-status",
+      context: action.context,
       state: resolvedState,
       lastUpdatedAt: action.lastUpdatedAt,
+      authSource: authSource(action.settings.authPath).label,
+      retryAt: poller.entry(authSource(action.settings.authPath)).retryAt || null,
       resetCredits: {
         availableCount: snapshot?.resetCredits.availableCount ?? null,
         applicableAvailableCount: snapshot?.resetCredits.applicableAvailableCount ?? null,
@@ -632,7 +603,7 @@ function normalizeDisplayText(value, maxLength) {
 }
 
 function sanitizeErrorCode(error) {
-  const knownErrorCodes = new Set(["LOGIN", "AUTH", "NETWORK", "ENDPOINT", "HTTP"]);
+  const knownErrorCodes = ERROR_CODES;
   return knownErrorCodes.has(error?.code) ? error.code : "HTTP";
 }
 
@@ -967,6 +938,9 @@ function renderErrorSvg(error) {
 }
 
 function errorState(error) {
+  const labels = { ACCESS: ["ACCESS", "DENIED"], AUTH_READ: ["AUTH FILE", "UNREADABLE"], AUTH_FORMAT: ["AUTH FILE", "INVALID"], AUTH_CONFIG: ["CONFIG", "CHECK"], STORAGE: ["AUTH STORE", "CHECK"], API_KEY: ["API KEY", "UNSUPPORTED"], TIMEOUT: ["TIMEOUT", "RETRY"], RATE_LIMIT: ["RATE LIMIT", "WAIT"], SERVER: ["SERVICE", "RETRY"] };
+  if (labels[error.code]) return { bg: "#120f18", panel: "#1b1422", accent: "#ffb020", label: labels[error.code][0], sub: labels[error.code][1], size: "18", icon: '<path d="M72 31v24" stroke="#ffb020" stroke-width="8" stroke-linecap="round"/>' };
+
   if (error.code === "LOGIN") {
     return {
       bg: "#101722",
@@ -984,7 +958,7 @@ function errorState(error) {
       panel: "#211522",
       accent: "#ffb020",
       label: "AUTH",
-      sub: "EXPIRED",
+      sub: "SIGN IN",
       size: "24",
       icon: `<path d="M72 31v24" stroke="#ffb020" stroke-width="8" stroke-linecap="round"/><circle cx="72" cy="66" r="4" fill="#ffb020"/>`,
     };

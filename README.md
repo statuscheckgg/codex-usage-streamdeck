@@ -45,6 +45,10 @@ This plugin reads the user's local Codex auth file:
 - Windows: `%USERPROFILE%\.codex\auth.json`
 - macOS: `~/.codex/auth.json`
 
+An explicit **Auth path** takes precedence; otherwise `CODEX_HOME/auth.json` is used when that environment variable is visible to Stream Deck. The plugin also reads the root credential-storage setting in `config.toml` next to the default auth file. Restart Stream Deck after changing its environment.
+
+File storage is supported. Keyring, automatic, and ephemeral modes are reported explicitly as unsupported: the plugin does not silently fall back to an old file when Codex may use another store. An explicit Auth path deliberately selects a known file. No browser cookies or unrelated application tokens are scanned.
+
 It uses the stored Codex ChatGPT access token and account id to make two read-only requests:
 
 `https://chatgpt.com/backend-api/wham/usage`
@@ -57,7 +61,17 @@ The plugin does not call a reset-consumption endpoint and cannot apply a banked 
 
 The plugin does not use the refresh token. If the access token is stale, the key shows a login/auth state and the user should refresh their Codex login through Codex itself.
 
+## Recovery and freshness
+
+CLI sign-in with ChatGPT is sufficient when it updates the selected file. Credential/config changes are checked every two seconds; no desktop sign-in is required. API-key login cannot supply subscription usage.
+
+Requests are shared across visible keys using the same source. Manual refreshes within one second coalesce; regular refreshes reuse data no older than the selected interval. Requests, including body reads, time out after 12 seconds. Transient failures retry with increasing delays up to about six minutes, or longer when Retry-After requires it. Optional reset-detail failures have their own retry budget and do not remove successful quota data.
+
+Network, timeout, rate-limit and server failures retain the last successful reading with a dimmed **STALE** banner and age. Authentication errors and credential changes clear cached readings. Status details show the last successful date/time, credential-source category and retry time without exposing tokens or paths.
+
 ## Development
+
+Run regression coverage with `npm run test:reliability` and `npm run test:harness`.
 
 Check syntax:
 

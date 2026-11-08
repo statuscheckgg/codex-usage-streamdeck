@@ -4,11 +4,11 @@
 
 - Name: `Codex Usage Monitor`
 - Type: Stream Deck plugin
-- Version: `0.1.12.0`
+- Version: `0.1.13.0`
 - Price: Free
 - Author: `Status Check`
 - Plugin file: `com.statuscheck.codex-usage.streamDeckPlugin`
-- Validated live platform: Windows 10+
+- Prior live-validated platform: Windows 10+; v0.1.13 has offline regression validation, not a new hardware/live-auth test
 - Manifest platforms: Windows 10+ and macOS 13+
 - macOS status: Included but not live-validated; do not describe it as tested
 
@@ -22,11 +22,18 @@ Codex Usage Monitor is an unofficial local Stream Deck plugin for tracking Codex
 
 Choose Dual Bars, Ring Gauge, Warning Tile, Split Key, or the display-only Reset Details layout. Reset Details keeps the key uncluttered with one large banked-reset count and one expiration-date line, while the Property Inspector retains the fuller reset status. Configure the active quota, remaining-capacity thresholds, optional flicker, refresh interval, reset countdowns, banked-reset indicator, and 12 or 24-hour clock. Visual changes rerender cached data without another network request; the key refreshes on its timer, when pressed, or from the Property Inspector. It never applies or spends a reset.
 
-Requires Stream Deck 7.1 or later, an active local Codex login, and network access to ChatGPT. End users do not need Node.js, npm, PowerShell, API Ninja, or a local server.
+Requires Stream Deck 7.1 or later, an active file-based Codex ChatGPT login, and network access to ChatGPT. Supports an explicit Auth path or CODEX_HOME. Keyring, automatic, and ephemeral credential storage are not supported; the plugin identifies those modes without silently using an old file. End users do not need Node.js, npm, PowerShell, API Ninja, or a local server.
 
 This plugin is unofficial and is not affiliated with OpenAI. It reads the local Codex auth file and sends authenticated usage requests only to OpenAI/ChatGPT. Tokens and raw usage data are never shown or sent to the plugin author, and the plugin includes no analytics or telemetry.
 
 ## Release Notes
+
+- Improves credential discovery with CODEX_HOME support and clearer authentication/storage diagnostics.
+- Recovers promptly after a file-based Codex login update without requiring desktop sign-in.
+- Shares requests across keys and adds timeouts and rate-limit/server retry backoff.
+- Retains visibly stale readings with age during temporary outages and prevents obsolete account responses from replacing current readings.
+
+Also includes the previously unreleased v0.1.12 changes:
 
 - Added banked-reset and current-usage applicability status.
 - Added a fifth, display-only Reset Details layout reduced to a large banked count and readable local expiration date.
@@ -65,10 +72,10 @@ This plugin is unofficial and is not affiliated with OpenAI. It reads the local 
 
 ## Pre-Upload Checklist
 
-- [ ] Commit and push v0.1.12 source, support, privacy, and release notes so public links match the candidate.
-- [ ] Confirm Maker Console v0.1.11 review state before adding v0.1.12 as a new version.
-- [ ] Upload the v0.1.12 product file, 288×288 icon, 1920×960 thumbnail, and at least three gallery items.
+- [ ] Commit and push v0.1.13 source, support, privacy, and release notes so public links match the candidate.
+- [ ] Confirm Maker Console v0.1.11 review state before adding v0.1.13 as a new version.
+- [ ] Upload the v0.1.13 product file, 288×288 icon, 1920×960 thumbnail, and at least three gallery items.
 - [ ] Include the 1920×1080 MP4 demonstration video because the plugin integrates with a paid service.
 - [ ] Paste the description and release notes above without claiming macOS was tested.
 - [ ] Leave automatic publication disabled until the DRM-protected candidate has been downloaded and smoke-tested.
-- [ ] Submit for Elgato review only after explicit user approval.
+- [x] User authorized publication and Elgato submission on 2026-11-08. Browser access is unavailable in this session; actual submission remains pending.
