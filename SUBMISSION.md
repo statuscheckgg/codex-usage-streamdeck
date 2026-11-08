@@ -72,7 +72,7 @@ Also includes the previously unreleased v0.1.12 changes:
 
 ## Pre-Upload Checklist
 
-- [ ] Commit and push v0.1.13 source, support, privacy, and release notes so public links match the candidate.
+- [x] Commit and push v0.1.13 source, support, privacy, and release notes; GitHub release published with installer at commit 5f40124.
 - [ ] Confirm Maker Console v0.1.11 review state before adding v0.1.13 as a new version.
 - [ ] Upload the v0.1.13 product file, 288×288 icon, 1920×960 thumbnail, and at least three gallery items.
 - [ ] Include the 1920×1080 MP4 demonstration video because the plugin integrates with a paid service.

@@ -8,7 +8,7 @@ Built plugin installer:
 
 Public release:
 
-`https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.11`
+`https://github.com/statuscheckgg/codex-usage-streamdeck/releases/tag/v0.1.13`
 
 Prepared upload candidate:
 
@@ -98,8 +98,10 @@ Adds CODEX_HOME support, precise login/storage diagnostics, automatic recovery a
 
 ## Submission Status
 
+2026-11-08: User approved publication. GitHub v0.1.13 is published. Elgato submission remains pending because this session reports browser access host unavailable, even with Chrome open.
+
 - GitHub repo published.
-- GitHub v0.1.11 is public and Marketplace v0.1.11 was previously submitted for review.
+- GitHub v0.1.13 is public at commit 5f4012456ba96e489ce2771648fcfc53513ad8e9 with the verified installer attached. Marketplace v0.1.11 was previously submitted; its current review state is unverified.
 - v0.1.13 source, package and listing copy are ready. Gallery/demo assets retain the existing v0.1.12 display examples; no new hardware or macOS validation is claimed.
 - Elgato `streamdeck validate` passes after public URL resolution.
 - Current upload copy and checklist are in `SUBMISSION.md`; `ELGATO_REVIEW_RESPONSE.md` is retained only as historical context.
